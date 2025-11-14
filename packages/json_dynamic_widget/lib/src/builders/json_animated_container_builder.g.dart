@@ -1,0 +1,592 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'json_animated_container_builder.dart';
+
+// **************************************************************************
+// Generator: JsonWidgetLibraryBuilder
+// **************************************************************************
+
+// ignore_for_file: avoid_init_to_null
+// ignore_for_file: deprecated_member_use
+
+// ignore_for_file: prefer_const_constructors
+// ignore_for_file: prefer_const_constructors_in_immutables
+// ignore_for_file: prefer_final_locals
+// ignore_for_file: prefer_if_null_operators
+// ignore_for_file: prefer_single_quotes
+// ignore_for_file: unused_local_variable
+
+class JsonAnimatedContainerBuilder extends _JsonAnimatedContainerBuilder {
+  const JsonAnimatedContainerBuilder({required super.args});
+
+  static const kType = 'animated_container';
+
+  /// Constant that can be referenced for the builder's type.
+  @override
+  String get type => kType;
+
+  /// Static function that is capable of decoding the widget from a dynamic JSON
+  /// or YAML set of values.
+  static JsonAnimatedContainerBuilder fromDynamic(
+    dynamic map, {
+    JsonWidgetRegistry? registry,
+  }) => JsonAnimatedContainerBuilder(args: map);
+
+  @override
+  JsonAnimatedContainerBuilderModel createModel({
+    ChildWidgetBuilder? childBuilder,
+    required JsonWidgetData data,
+  }) {
+    final model = JsonAnimatedContainerBuilderModel.fromDynamic(
+      args,
+      registry: data.jsonWidgetRegistry,
+    );
+
+    return model;
+  }
+
+  @override
+  AnimatedContainer buildCustom({
+    ChildWidgetBuilder? childBuilder,
+    required BuildContext context,
+    required JsonWidgetData data,
+    Key? key,
+  }) {
+    final model = createModel(childBuilder: childBuilder, data: data);
+
+    final decorationDecoded = _decodeDecoration(value: model.decoration);
+    final foregroundDecorationDecoded = _decodeForegroundDecoration(
+      value: model.foregroundDecoration,
+    );
+
+    return AnimatedContainer(
+      alignment: model.alignment,
+      clipBehavior: model.clipBehavior,
+      color: model.color,
+      constraints: model.constraints,
+      curve: model.curve,
+      decoration: decorationDecoded,
+      duration: model.duration,
+      foregroundDecoration: foregroundDecorationDecoded,
+      height: model.height,
+      key: key,
+      margin: model.margin,
+      onEnd: model.onEnd,
+      padding: model.padding,
+      transform: model.transform,
+      transformAlignment: model.transformAlignment,
+      width: model.width,
+      child: model.child?.build(childBuilder: childBuilder, context: context),
+    );
+  }
+}
+
+class JsonAnimatedContainer extends JsonWidgetData {
+  JsonAnimatedContainer({
+    Map<String, dynamic> args = const {},
+    JsonWidgetRegistry? registry,
+    this.alignment,
+    this.clipBehavior = Clip.none,
+    this.color,
+    this.constraints,
+    this.curve = Curves.linear,
+    required this.decoration,
+    required this.duration,
+    required this.foregroundDecoration,
+    this.height,
+    this.margin,
+    this.onEnd,
+    this.padding,
+    this.transform,
+    this.transformAlignment,
+    this.width,
+    this.child,
+  }) : super(
+         jsonWidgetArgs: JsonAnimatedContainerBuilderModel.fromDynamic(
+           {
+             'alignment': alignment,
+             'clipBehavior': clipBehavior,
+             'color': color,
+             'constraints': constraints,
+             'curve': curve,
+             'decoration': decoration,
+             'duration': duration,
+             'foregroundDecoration': foregroundDecoration,
+             'height': height,
+             'margin': margin,
+             'onEnd': onEnd,
+             'padding': padding,
+             'transform': transform,
+             'transformAlignment': transformAlignment,
+             'width': width,
+             'child': child,
+
+             ...args,
+           },
+           args: args,
+           registry: registry,
+         ),
+         jsonWidgetBuilder: () => JsonAnimatedContainerBuilder(
+           args: JsonAnimatedContainerBuilderModel.fromDynamic(
+             {
+               'alignment': alignment,
+               'clipBehavior': clipBehavior,
+               'color': color,
+               'constraints': constraints,
+               'curve': curve,
+               'decoration': decoration,
+               'duration': duration,
+               'foregroundDecoration': foregroundDecoration,
+               'height': height,
+               'margin': margin,
+               'onEnd': onEnd,
+               'padding': padding,
+               'transform': transform,
+               'transformAlignment': transformAlignment,
+               'width': width,
+               'child': child,
+
+               ...args,
+             },
+             args: args,
+             registry: registry,
+           ),
+         ),
+         jsonWidgetType: JsonAnimatedContainerBuilder.kType,
+       );
+
+  /* AUTOGENERATED FROM [AnimatedContainer.alignment]*/
+  /// Align the [child] within the container.
+  ///
+  /// If non-null, the container will expand to fill its parent and position its
+  /// child within itself according to the given value. If the incoming
+  /// constraints are unbounded, then the child will be shrink-wrapped instead.
+  ///
+  /// Ignored if [child] is null.
+  ///
+  /// See also:
+  ///
+  ///  * [Alignment], a class with convenient constants typically used to
+  ///    specify an [AlignmentGeometry].
+  ///  * [AlignmentDirectional], like [Alignment] for specifying alignments
+  ///    relative to text direction.
+  final AlignmentGeometry? alignment;
+
+  /* AUTOGENERATED FROM [AnimatedContainer.clipBehavior]*/
+  /// The clip behavior when [AnimatedContainer.decoration] is not null.
+  ///
+  /// Defaults to [Clip.none]. Must be [Clip.none] if [decoration] is null.
+  ///
+  /// Unlike other properties of [AnimatedContainer], changes to this property
+  /// apply immediately and have no animation.
+  ///
+  /// If a clip is to be applied, the [Decoration.getClipPath] method
+  /// for the provided decoration must return a clip path. (This is not
+  /// supported by all decorations; the default implementation of that
+  /// method throws an [UnsupportedError].)
+  final Clip clipBehavior;
+
+  final Color? color;
+
+  /* AUTOGENERATED FROM [AnimatedContainer.constraints]*/
+  /// Additional constraints to apply to the child.
+  ///
+  /// The constructor `width` and `height` arguments are combined with the
+  /// `constraints` argument to set this property.
+  ///
+  /// The [padding] goes inside the constraints.
+  final BoxConstraints? constraints;
+
+  final Curve curve;
+
+  /* AUTOGENERATED FROM [AnimatedContainer.decoration]*/
+  /// The decoration to paint behind the [child].
+  ///
+  /// A shorthand for specifying just a solid color is available in the
+  /// constructor: set the `color` argument instead of the `decoration`
+  /// argument.
+  final dynamic decoration;
+
+  final Duration duration;
+
+  /* AUTOGENERATED FROM [AnimatedContainer.foregroundDecoration]*/
+  /// The decoration to paint in front of the child.
+  final dynamic foregroundDecoration;
+
+  final double? height;
+
+  /* AUTOGENERATED FROM [AnimatedContainer.margin]*/
+  /// Empty space to surround the [decoration] and [child].
+  final EdgeInsetsGeometry? margin;
+
+  final void Function()? onEnd;
+
+  /* AUTOGENERATED FROM [AnimatedContainer.padding]*/
+  /// Empty space to inscribe inside the [decoration]. The [child], if any, is
+  /// placed inside this padding.
+  final EdgeInsetsGeometry? padding;
+
+  /* AUTOGENERATED FROM [AnimatedContainer.transform]*/
+  /// The transformation matrix to apply before painting the container.
+  final Matrix4? transform;
+
+  /* AUTOGENERATED FROM [AnimatedContainer.transformAlignment]*/
+  /// The alignment of the origin, relative to the size of the container, if [transform] is specified.
+  ///
+  /// When [transform] is null, the value of this property is ignored.
+  ///
+  /// See also:
+  ///
+  ///  * [Transform.alignment], which is set by this property.
+  final AlignmentGeometry? transformAlignment;
+
+  final double? width;
+
+  /* AUTOGENERATED FROM [AnimatedContainer.child]*/
+  /// The [child] contained by the container.
+  ///
+  /// If null, and if the [constraints] are unbounded or also null, the
+  /// container will expand to fill all available space in its parent, unless
+  /// the parent provides unbounded constraints, in which case the container
+  /// will attempt to be as small as possible.
+  ///
+  /// {@macro flutter.widgets.ProxyWidget.child}
+  final JsonWidgetData? child;
+}
+
+/* AUTOGENERATED FROM [AnimatedContainer]*/
+/// Creates a container that animates its parameters implicitly.
+class JsonAnimatedContainerBuilderModel extends JsonWidgetBuilderModel {
+  const JsonAnimatedContainerBuilderModel(
+    super.args, {
+    this.alignment,
+    this.clipBehavior = Clip.none,
+    this.color,
+    this.constraints,
+    this.curve = Curves.linear,
+    required this.decoration,
+    required this.duration,
+    required this.foregroundDecoration,
+    this.height,
+    this.margin,
+    this.onEnd,
+    this.padding,
+    this.transform,
+    this.transformAlignment,
+    this.width,
+    this.child,
+  });
+
+  /* AUTOGENERATED FROM [AnimatedContainer.alignment]*/
+  /// Align the [child] within the container.
+  ///
+  /// If non-null, the container will expand to fill its parent and position its
+  /// child within itself according to the given value. If the incoming
+  /// constraints are unbounded, then the child will be shrink-wrapped instead.
+  ///
+  /// Ignored if [child] is null.
+  ///
+  /// See also:
+  ///
+  ///  * [Alignment], a class with convenient constants typically used to
+  ///    specify an [AlignmentGeometry].
+  ///  * [AlignmentDirectional], like [Alignment] for specifying alignments
+  ///    relative to text direction.
+  final AlignmentGeometry? alignment;
+
+  /* AUTOGENERATED FROM [AnimatedContainer.clipBehavior]*/
+  /// The clip behavior when [AnimatedContainer.decoration] is not null.
+  ///
+  /// Defaults to [Clip.none]. Must be [Clip.none] if [decoration] is null.
+  ///
+  /// Unlike other properties of [AnimatedContainer], changes to this property
+  /// apply immediately and have no animation.
+  ///
+  /// If a clip is to be applied, the [Decoration.getClipPath] method
+  /// for the provided decoration must return a clip path. (This is not
+  /// supported by all decorations; the default implementation of that
+  /// method throws an [UnsupportedError].)
+  final Clip clipBehavior;
+
+  final Color? color;
+
+  /* AUTOGENERATED FROM [AnimatedContainer.constraints]*/
+  /// Additional constraints to apply to the child.
+  ///
+  /// The constructor `width` and `height` arguments are combined with the
+  /// `constraints` argument to set this property.
+  ///
+  /// The [padding] goes inside the constraints.
+  final BoxConstraints? constraints;
+
+  final Curve curve;
+
+  /* AUTOGENERATED FROM [AnimatedContainer.decoration]*/
+  /// The decoration to paint behind the [child].
+  ///
+  /// A shorthand for specifying just a solid color is available in the
+  /// constructor: set the `color` argument instead of the `decoration`
+  /// argument.
+  final dynamic decoration;
+
+  final Duration duration;
+
+  /* AUTOGENERATED FROM [AnimatedContainer.foregroundDecoration]*/
+  /// The decoration to paint in front of the child.
+  final dynamic foregroundDecoration;
+
+  final double? height;
+
+  /* AUTOGENERATED FROM [AnimatedContainer.margin]*/
+  /// Empty space to surround the [decoration] and [child].
+  final EdgeInsetsGeometry? margin;
+
+  final void Function()? onEnd;
+
+  /* AUTOGENERATED FROM [AnimatedContainer.padding]*/
+  /// Empty space to inscribe inside the [decoration]. The [child], if any, is
+  /// placed inside this padding.
+  final EdgeInsetsGeometry? padding;
+
+  /* AUTOGENERATED FROM [AnimatedContainer.transform]*/
+  /// The transformation matrix to apply before painting the container.
+  final Matrix4? transform;
+
+  /* AUTOGENERATED FROM [AnimatedContainer.transformAlignment]*/
+  /// The alignment of the origin, relative to the size of the container, if [transform] is specified.
+  ///
+  /// When [transform] is null, the value of this property is ignored.
+  ///
+  /// See also:
+  ///
+  ///  * [Transform.alignment], which is set by this property.
+  final AlignmentGeometry? transformAlignment;
+
+  final double? width;
+
+  /* AUTOGENERATED FROM [AnimatedContainer.child]*/
+  /// The [child] contained by the container.
+  ///
+  /// If null, and if the [constraints] are unbounded or also null, the
+  /// container will expand to fill all available space in its parent, unless
+  /// the parent provides unbounded constraints, in which case the container
+  /// will attempt to be as small as possible.
+  ///
+  /// {@macro flutter.widgets.ProxyWidget.child}
+  final JsonWidgetData? child;
+
+  static JsonAnimatedContainerBuilderModel fromDynamic(
+    dynamic map, {
+    Map<String, dynamic> args = const {},
+    JsonWidgetRegistry? registry,
+  }) {
+    final result = maybeFromDynamic(map, args: args, registry: registry);
+
+    if (result == null) {
+      throw Exception(
+        '[JsonAnimatedContainerBuilder]: requested to parse from dynamic, but the input is null.',
+      );
+    }
+
+    return result;
+  }
+
+  static JsonAnimatedContainerBuilderModel? maybeFromDynamic(
+    dynamic map, {
+    Map<String, dynamic> args = const {},
+    JsonWidgetRegistry? registry,
+  }) {
+    JsonAnimatedContainerBuilderModel? result;
+
+    if (map != null) {
+      if (map is String) {
+        map = yaon.parse(map, normalize: true);
+      }
+
+      if (map is JsonAnimatedContainerBuilderModel) {
+        result = map;
+      } else {
+        registry ??= JsonWidgetRegistry.instance;
+        map = registry.processArgs(map, <String>{}).value;
+        result = JsonAnimatedContainerBuilderModel(
+          args,
+          alignment: () {
+            dynamic parsed = ThemeDecoder.instance.decodeAlignmentGeometry(
+              map['alignment'],
+              validate: false,
+            );
+
+            return parsed;
+          }(),
+          clipBehavior: () {
+            dynamic parsed = ThemeDecoder.instance.decodeClip(
+              map['clipBehavior'],
+              validate: false,
+            );
+            parsed ??= Clip.none;
+
+            return parsed;
+          }(),
+          color: () {
+            dynamic parsed = ThemeDecoder.instance.decodeColor(
+              map['color'],
+              validate: false,
+            );
+
+            return parsed;
+          }(),
+          constraints: () {
+            dynamic parsed = ThemeDecoder.instance.decodeBoxConstraints(
+              map['constraints'],
+              validate: false,
+            );
+
+            return parsed;
+          }(),
+          curve: () {
+            dynamic parsed = CurvesValues.lookup(map['curve']);
+
+            parsed ??= Curves.linear;
+
+            return parsed;
+          }(),
+          decoration: map['decoration'],
+          duration: () {
+            dynamic parsed = JsonClass.parseDurationFromMillis(map['duration']);
+
+            if (parsed == null) {
+              throw Exception(
+                'Null value encountered for required parameter: [duration].',
+              );
+            }
+            return parsed;
+          }(),
+          foregroundDecoration: map['foregroundDecoration'],
+          height: () {
+            dynamic parsed = JsonClass.maybeParseDouble(map['height']);
+
+            return parsed;
+          }(),
+          margin: () {
+            dynamic parsed = ThemeDecoder.instance.decodeEdgeInsetsGeometry(
+              map['margin'],
+              validate: false,
+            );
+
+            return parsed;
+          }(),
+          onEnd: map['onEnd'],
+          padding: () {
+            dynamic parsed = ThemeDecoder.instance.decodeEdgeInsetsGeometry(
+              map['padding'],
+              validate: false,
+            );
+
+            return parsed;
+          }(),
+          transform: () {
+            dynamic parsed = ThemeDecoder.instance.decodeMatrix4(
+              map['transform'],
+              validate: false,
+            );
+
+            return parsed;
+          }(),
+          transformAlignment: () {
+            dynamic parsed = ThemeDecoder.instance.decodeAlignmentGeometry(
+              map['transformAlignment'],
+              validate: false,
+            );
+
+            return parsed;
+          }(),
+          width: () {
+            dynamic parsed = JsonClass.maybeParseDouble(map['width']);
+
+            return parsed;
+          }(),
+          child: () {
+            dynamic parsed = JsonWidgetData.maybeFromDynamic(
+              map['child'],
+              registry: registry,
+            );
+
+            return parsed;
+          }(),
+        );
+      }
+    }
+
+    return result;
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    final decorationEncoded = _JsonAnimatedContainerBuilder._encodeDecoration(
+      decoration,
+    );
+    final foregroundDecorationEncoded =
+        _JsonAnimatedContainerBuilder._encodeForegroundDecoration(
+          foregroundDecoration,
+        );
+
+    return JsonClass.removeNull({
+      'alignment': ThemeEncoder.instance.encodeAlignmentGeometry(alignment),
+      'clipBehavior': Clip.none == clipBehavior
+          ? null
+          : ThemeEncoder.instance.encodeClip(clipBehavior),
+      'color': ThemeEncoder.instance.encodeColor(color),
+      'constraints': ThemeEncoder.instance.encodeBoxConstraints(constraints),
+      'curve': Curves.linear == curve ? null : CurvesValues.encode(curve),
+      'decoration': decorationEncoded,
+      'duration': duration.inMilliseconds,
+      'foregroundDecoration': foregroundDecorationEncoded,
+      'height': height,
+      'margin': ThemeEncoder.instance.encodeEdgeInsetsGeometry(margin),
+      'onEnd': onEnd,
+      'padding': ThemeEncoder.instance.encodeEdgeInsetsGeometry(padding),
+      'transform': ThemeEncoder.instance.encodeMatrix4(transform),
+      'transformAlignment': ThemeEncoder.instance.encodeAlignmentGeometry(
+        transformAlignment,
+      ),
+      'width': width,
+      'child': child?.toJson(),
+
+      ...args,
+    });
+  }
+}
+
+class AnimatedContainerSchema {
+  static const id =
+      'https://peiffer-innovations.github.io/flutter_json_schemas/schemas/json_dynamic_widget/animated_container.json';
+
+  static final schema = <String, Object>{
+    r'$schema': 'http://json-schema.org/draft-07/schema#',
+    r'$id': id,
+    'title': 'AnimatedContainer',
+    'type': 'object',
+    'additionalProperties': false,
+    'properties': {
+      'alignment': SchemaHelper.objectSchema(AlignmentGeometrySchema.id),
+      'clipBehavior': SchemaHelper.objectSchema(ClipSchema.id),
+      'color': SchemaHelper.objectSchema(ColorSchema.id),
+      'constraints': SchemaHelper.objectSchema(BoxConstraintsSchema.id),
+      'curve': SchemaHelper.anySchema,
+      'decoration': _JsonAnimatedContainerBuilder._decorationSchema(),
+      'duration': SchemaHelper.anySchema,
+      'foregroundDecoration':
+          _JsonAnimatedContainerBuilder._foregroundDecorationSchema(),
+      'height': SchemaHelper.numberSchema,
+      'margin': SchemaHelper.objectSchema(EdgeInsetsGeometrySchema.id),
+      'onEnd': SchemaHelper.anySchema,
+      'padding': SchemaHelper.objectSchema(EdgeInsetsGeometrySchema.id),
+      'transform': SchemaHelper.objectSchema(Matrix4Schema.id),
+      'transformAlignment': SchemaHelper.objectSchema(
+        AlignmentGeometrySchema.id,
+      ),
+      'width': SchemaHelper.numberSchema,
+      'child': SchemaHelper.objectSchema(JsonWidgetDataSchema.id),
+    },
+  };
+}
