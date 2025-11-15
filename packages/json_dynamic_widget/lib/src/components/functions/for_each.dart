@@ -60,25 +60,38 @@ class ForEachFunction {
           index,
           originator: null,
         );
-        final varPattern = RegExp(
-          r'\$\{([^}]*)\b(' + RegExp.escape(varName) + r')\b([^}]*)\}',
+
+        final placeholderPattern = RegExp(r'\$\{([^}]*)\}');
+
+        final replacedTemplate = templateObjectString.replaceAllMapped(
+          placeholderPattern,
+          (match) {
+            var inside = match.group(1)!;
+
+            if (varName.isNotEmpty) {
+              final varNamePattern = RegExp(
+                r'\b' + RegExp.escape(varName) + r'\b',
+              );
+              inside = inside.replaceAllMapped(
+                varNamePattern,
+                (_) => '${varName}_${uniqueKey}_$indexStr',
+              );
+            }
+
+            if (keyName.isNotEmpty) {
+              final keyNamePattern = RegExp(
+                r'\b' + RegExp.escape(keyName) + r'\b',
+              );
+              inside = inside.replaceAllMapped(
+                keyNamePattern,
+                (_) => '${keyName}_${uniqueKey}_$indexStr',
+              );
+            }
+
+            return '\${$inside}';
+          },
         );
 
-        final keyPattern = RegExp(
-          r'\$\{([^}]*)\b(' + RegExp.escape(keyName) + r')\b([^}]*)\}',
-        );
-
-        final replacedTemplate = templateObjectString
-            .replaceAllMapped(varPattern, (match) {
-              final before = match.group(1)!; // lo que hay antes de varName
-              final after = match.group(3)!; // lo que hay después de varName
-              return '\${$before${varName}_${uniqueKey}_$indexStr$after}';
-            })
-            .replaceAllMapped(keyPattern, (match) {
-              final before = match.group(1)!; // lo que hay antes de keyName
-              final after = match.group(3)!; // lo que hay después de keyName
-              return '\${$before${keyName}_${uniqueKey}_$indexStr$after}';
-            });
         results.add(
           DeferredJsonWidgetData(
             key: json.decode(replacedTemplate),
@@ -101,25 +114,36 @@ class ForEachFunction {
           originator: null,
         );
 
-        final varPattern = RegExp(
-          r'\$\{([^}]*)\b(' + RegExp.escape(varName) + r')\b([^}]*)\}',
-        );
+        final placeholderPattern = RegExp(r'\$\{([^}]*)\}');
 
-        final keyPattern = RegExp(
-          r'\$\{([^}]*)\b(' + RegExp.escape(keyName) + r')\b([^}]*)\}',
-        );
+        final replacedTemplate = templateObjectString.replaceAllMapped(
+          placeholderPattern,
+          (match) {
+            var inside = match.group(1)!;
 
-        final replacedTemplate = templateObjectString
-            .replaceAllMapped(varPattern, (match) {
-              final before = match.group(1)!; // lo que hay antes de varName
-              final after = match.group(3)!; // lo que hay después de varName
-              return '\${$before${varName}_${uniqueKey}_${entry.key}';
-            })
-            .replaceAllMapped(keyPattern, (match) {
-              final before = match.group(1)!; // lo que hay antes de keyName
-              final after = match.group(3)!; // lo que hay después de keyName
-              return '\${$before${keyName}_${uniqueKey}_${entry.key}';
-            });
+            if (varName.isNotEmpty) {
+              final varNamePattern = RegExp(
+                r'\b' + RegExp.escape(varName) + r'\b',
+              );
+              inside = inside.replaceAllMapped(
+                varNamePattern,
+                (_) => '${varName}_${uniqueKey}_${entry.key}',
+              );
+            }
+
+            if (keyName.isNotEmpty) {
+              final keyNamePattern = RegExp(
+                r'\b' + RegExp.escape(keyName) + r'\b',
+              );
+              inside = inside.replaceAllMapped(
+                keyNamePattern,
+                (_) => '${keyName}_${uniqueKey}_${entry.key}',
+              );
+            }
+
+            return '\${$inside}';
+          },
+        );
 
         results.add(
           DeferredJsonWidgetData(
