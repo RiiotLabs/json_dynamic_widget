@@ -55,10 +55,11 @@ class _SetValueState extends State<_SetValue> {
   @override
   void didUpdateWidget(oldWidget) {
     super.didUpdateWidget(oldWidget);
-    oldWidget.values?.forEach(
-      (key, _) =>
-          oldWidget.data.jsonWidgetRegistry.removeValue(key, originator: null),
-    );
+    oldWidget.values?.forEach((key, _) {
+      if (widget.values?.containsKey(key) != true) {
+        oldWidget.data.jsonWidgetRegistry.removeValue(key, originator: null);
+      }
+    });
 
     widget.values?.forEach(
       (key, value) =>
