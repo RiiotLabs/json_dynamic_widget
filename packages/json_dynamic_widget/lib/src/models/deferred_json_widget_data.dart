@@ -18,6 +18,7 @@ class DeferredJsonWidgetData implements JsonWidgetData {
   final VoidCallback? _onResolved;
 
   JsonWidgetData? _data;
+
   @override
   bool get hasProvidedId => data.hasProvidedId;
 
@@ -30,10 +31,7 @@ class DeferredJsonWidgetData implements JsonWidgetData {
   JsonWidgetData get data {
     var data = _data;
     if (data == null) {
-      data = JsonWidgetData.fromDynamic(
-        _key,
-        registry: jsonWidgetRegistry
-      );
+      data = JsonWidgetData.fromDynamic(_key, registry: jsonWidgetRegistry);
       _data = data;
     }
     return data;
@@ -66,16 +64,10 @@ class DeferredJsonWidgetData implements JsonWidgetData {
     }
 
     if (built is PreferredSizeWidget) {
-      return _PreferredSizeCleanupWidget(
-        child: built,
-        onDispose: onResolved,
-      );
+      return _PreferredSizeCleanupWidget(onDispose: onResolved, child: built);
     }
 
-    return _CleanupWidget(
-      child: built,
-      onDispose: onResolved,
-    );
+    return _CleanupWidget(onDispose: onResolved, child: built);
   }
 
   @override
@@ -86,6 +78,7 @@ class DeferredJsonWidgetData implements JsonWidgetData {
     String? jsonWidgetId,
     JsonWidgetRegistry? jsonWidgetRegistry,
     String? jsonWidgetType,
+    JsonWidgetData? jsonWidgetFallback,
   }) => JsonWidgetData(
     hasProvidedId: hasProvidedId,
     jsonWidgetArgs: jsonWidgetArgs ?? this.jsonWidgetArgs,
@@ -97,6 +90,7 @@ class DeferredJsonWidgetData implements JsonWidgetData {
     jsonWidgetId: jsonWidgetId ?? this.jsonWidgetId,
     jsonWidgetRegistry: jsonWidgetRegistry ?? this.jsonWidgetRegistry,
     jsonWidgetType: jsonWidgetType ?? this.jsonWidgetType,
+    jsonWidgetFallback: jsonWidgetFallback ?? this.jsonWidgetFallback,
   );
 
   @override
@@ -107,13 +101,13 @@ class DeferredJsonWidgetData implements JsonWidgetData {
 
   @override
   String get jsonWidgetType => data.jsonWidgetType;
+
+  @override
+  JsonWidgetData? get jsonWidgetFallback => data.jsonWidgetFallback;
 }
 
 class _CleanupWidget extends StatefulWidget {
-  const _CleanupWidget({
-    required this.child,
-    required this.onDispose,
-  });
+  const _CleanupWidget({required this.child, required this.onDispose});
 
   final Widget child;
   final VoidCallback onDispose;

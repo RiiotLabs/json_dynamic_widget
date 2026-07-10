@@ -13,6 +13,7 @@ class JsonWidgetData extends JsonClass {
     Set<String>? jsonWidgetListenVariables,
     String? jsonWidgetId,
     JsonWidgetRegistry? jsonWidgetRegistry,
+    this.jsonWidgetFallback,
     required this.jsonWidgetType,
   }) : hasProvidedId = hasProvidedId ?? jsonWidgetId != null,
        jsonWidgetListenVariables = jsonWidgetListenVariables ?? <String>{},
@@ -28,6 +29,7 @@ class JsonWidgetData extends JsonClass {
   final JsonWidgetRegistry jsonWidgetRegistry;
   final Set<String> jsonWidgetListenVariables;
   final String jsonWidgetId;
+  final JsonWidgetData? jsonWidgetFallback;
 
   /// Decodes a JSON object into a dynamic widget.  The structure is the same
   /// for all dynamic widgets with the exception of the `args` value.  The
@@ -111,6 +113,7 @@ class JsonWidgetData extends JsonClass {
           }
           final builder = registry.getWidgetBuilder(type);
           final args = map['args'] as Map? ?? const {};
+          final jsonWidgetFallback = _getFallback(map, registry: registry);
           final jsonWidgetListenVariables = _getListenVariables(map);
 
           // The validation needs to happen before we process the dynamic args
@@ -133,6 +136,7 @@ class JsonWidgetData extends JsonClass {
             jsonWidgetId: map['id'],
             jsonWidgetRegistry: registry,
             jsonWidgetType: type,
+            jsonWidgetFallback: jsonWidgetFallback,
           );
         } finally {
           timer.stop();
@@ -192,6 +196,19 @@ $errorValue
     return result;
   }
 
+  static JsonWidgetData? _getFallback(
+    dynamic map, {
+    required JsonWidgetRegistry registry,
+  }) {
+    final fallback = map?['fallback'];
+
+    if (fallback == null) {
+      return null;
+    }
+
+    return JsonWidgetData.maybeFromDynamic(fallback, registry: registry);
+  }
+
   /// Get listen variables directly from [map].
   /// Changing the value of listen variables is causing [JsonWidgetData] to be
   /// rebuilt. Defining them in [map] is also stopping [ArgProcessor] from
@@ -228,6 +245,7 @@ $errorValue
     String? jsonWidgetId,
     JsonWidgetRegistry? jsonWidgetRegistry,
     String? jsonWidgetType,
+    JsonWidgetData? jsonWidgetFallback,
   }) => JsonWidgetData(
     hasProvidedId: hasProvidedId,
     jsonWidgetArgs: jsonWidgetArgs ?? this.jsonWidgetArgs,
@@ -239,6 +257,7 @@ $errorValue
     jsonWidgetId: jsonWidgetId ?? this.jsonWidgetId,
     jsonWidgetRegistry: jsonWidgetRegistry ?? this.jsonWidgetRegistry,
     jsonWidgetType: jsonWidgetType ?? this.jsonWidgetType,
+    jsonWidgetFallback: jsonWidgetFallback ?? this.jsonWidgetFallback,
   );
 
   @override
@@ -256,6 +275,7 @@ $errorValue
       'args': jsonWidgetArgs is JsonClass
           ? jsonWidgetArgs.toJson()
           : jsonWidgetArgs,
+      'fallback': jsonWidgetFallback?.toJson(),
     });
   }
 }

@@ -151,6 +151,7 @@ class JsonWidgetDataSchema {
               {'type': 'array', 'items': SchemaHelper.anySchema},
             ],
           },
+          'fallback': SchemaHelper.objectSchema(JsonWidgetDataSchema.id),
           'id': {'type': 'string'},
           'type': {'type': 'string'},
           'listen': {'type': 'array', 'items': SchemaHelper.stringSchema},

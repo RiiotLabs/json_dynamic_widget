@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:json_dynamic_widget/json_dynamic_widget.dart';
-import 'package:logging/logging.dart';
 
 /// Builder that builds dynamic widgets from JSON or other Map-like structures.
 /// Applications can register their own types and builders through the
@@ -36,7 +35,7 @@ abstract class JsonWidgetBuilder {
     required JsonWidgetData data,
   });
 
-  /// Builds the widget.  If there are dynamic keys on the [data] object, and
+  /// Builds the widget. If there are dynamic keys on the [data] object, and
   /// the widget is not a [PreferredSizeWidget], then the returned widget will
   /// be wrapped by a stateful widget that will rebuild if any of the dynamic
   /// args change in value.
@@ -46,24 +45,20 @@ abstract class JsonWidgetBuilder {
     required BuildContext context,
     required JsonWidgetData data,
   }) {
-    late Widget result;
-
     if (preferredSizeWidget == true || data.jsonWidgetListenVariables.isEmpty) {
-      result = _buildWidget(
+      return _buildWidget(
         childBuilder: childBuilder,
         context: context,
         data: data,
       );
-    } else {
-      result = _JsonWidgetStateful(
-        childBuilder: childBuilder,
-        customBuilder: _buildWidget,
-        data: data,
-        key: ValueKey('json_widget_stateful.${data.jsonWidgetId}'),
-      );
     }
 
-    return result;
+    return _JsonWidgetStateful(
+      childBuilder: childBuilder,
+      customBuilder: _buildWidget,
+      data: data,
+      key: ValueKey('json_widget_stateful.${data.jsonWidgetId}'),
+    );
   }
 
   /// Custom builder that subclasses must override and implement to return the
@@ -83,9 +78,10 @@ abstract class JsonWidgetBuilder {
   }) {
     final key = ValueKey(data.jsonWidgetId);
 
-    dynamic exception;
+    Object? exception;
     StackTrace? stackTrace;
-    var widget = runZonedGuarded(
+
+    final builtWidget = runZonedGuarded<Widget?>(
       () {
         return buildCustom(
           childBuilder: childBuilder,
@@ -94,37 +90,97 @@ abstract class JsonWidgetBuilder {
           key: key,
         );
       },
-      (e, stack) {
-        exception = e;
+      (error, stack) {
+        exception = error;
         stackTrace = stack;
       },
     );
 
-    if (widget == null) {
-      final onBuildWidgetFailed = data.jsonWidgetRegistry.onBuildWidgetFailed;
-      if (onBuildWidgetFailed != null) {
-        widget = onBuildWidgetFailed(
-          data: data,
+    var result =
+        builtWidget ??
+        _buildFallbackOrFailureWidget(
           context: context,
+          data: data,
           error: exception,
           stackTrace: stackTrace,
         );
-      } else if (exception is HandledJsonWidgetException) {
-        throw exception;
-      } else {
-        throw HandledJsonWidgetException(
-          exception,
-          data: data.toJson(),
-          stackTrace: stackTrace,
+
+    if (childBuilder != null) {
+      result = childBuilder(context, result);
+    }
+
+    return result;
+  }
+
+  Widget _buildFallbackOrFailureWidget({
+    required BuildContext context,
+    required JsonWidgetData data,
+    required Object? error,
+    required StackTrace? stackTrace,
+  }) {
+    final fallback = data.jsonWidgetFallback;
+
+    if (fallback != null) {
+      try {
+        return fallback.build(
+          childBuilder: null,
+          context: context,
+          registry: data.jsonWidgetRegistry,
         );
+      } catch (fallbackError, fallbackStackTrace) {
+        error = fallbackError;
+        stackTrace = fallbackStackTrace;
       }
     }
 
-    if (childBuilder != null) {
-      widget = childBuilder(context, widget);
+    final onBuildWidgetFailed = data.jsonWidgetRegistry.onBuildWidgetFailed;
+    if (onBuildWidgetFailed != null) {
+      try {
+        return onBuildWidgetFailed(
+          data: data,
+          context: context,
+          error: error,
+          stackTrace: stackTrace,
+        );
+      } catch (fallbackError, fallbackStackTrace) {
+        error = fallbackError;
+        stackTrace = fallbackStackTrace;
+      }
     }
 
-    return widget;
+    return _buildFailureWidget(
+      data: data,
+      error: error,
+      stackTrace: stackTrace,
+    );
+  }
+
+  Widget _buildFailureWidget({
+    required JsonWidgetData data,
+    required Object? error,
+    required StackTrace? stackTrace,
+  }) {
+    if (!kDebugMode) {
+      return const SizedBox.shrink();
+    }
+
+    return SingleChildScrollView(
+      child: ErrorWidget.withDetails(
+        message:
+            '''
+Error building JSON widget: ${data.jsonWidgetType}
+
+Error:
+$error
+
+StackTrace:
+$stackTrace
+
+Data:
+${data.toJson()}
+''',
+      ),
+    );
   }
 }
 
@@ -137,12 +193,14 @@ class _JsonWidgetStateful extends StatefulWidget {
   });
 
   final ChildWidgetBuilder? childBuilder;
-  final Widget? Function({
-    required ChildWidgetBuilder childBuilder,
+
+  final Widget Function({
+    required ChildWidgetBuilder? childBuilder,
     required BuildContext context,
     required JsonWidgetData data,
   })
   customBuilder;
+
   final JsonWidgetData data;
 
   @override
@@ -150,8 +208,6 @@ class _JsonWidgetStateful extends StatefulWidget {
 }
 
 class _JsonWidgetStatefulState extends State<_JsonWidgetStateful> {
-  static final Logger _logger = Logger('_JsonWidgetStatefulState');
-
   late JsonWidgetData _data;
   StreamSubscription? _subscription;
 
@@ -182,35 +238,11 @@ class _JsonWidgetStatefulState extends State<_JsonWidgetStateful> {
 
   @override
   Widget build(BuildContext context) {
-    Widget? result;
-    try {
-      result = _data.jsonWidgetBuilder().buildCustom(
-        childBuilder: widget.childBuilder,
-        context: context,
-        data: _data,
-        key: ValueKey(_data.jsonWidgetId),
-      );
-
-      if (widget.childBuilder != null) {
-        result = widget.childBuilder!(context, result);
-      }
-    } catch (e, stack) {
-      result = SingleChildScrollView(
-        child: ErrorWidget.withDetails(
-          message:
-              '''
-$e
-$stack
-''',
-        ),
-      );
-      _logger.severe(
-        'Error building widget: [${_data.jsonWidgetType}].',
-        e,
-        stack,
-      );
-    }
-    return result;
+    return widget.customBuilder(
+      childBuilder: widget.childBuilder,
+      context: context,
+      data: _data,
+    );
   }
 }
 
