@@ -177,10 +177,18 @@ StackTrace:
 $stackTrace
 
 Data:
-${data.toJson()}
+${_safeDataToJson(data)}
 ''',
       ),
     );
+  }
+
+  String _safeDataToJson(JsonWidgetData data) {
+    try {
+      return data.toJson().toString();
+    } catch (e) {
+      return 'Unable to serialize widget data: $e';
+    }
   }
 }
 

@@ -21,6 +21,86 @@ void main() {
     expect(find.text('Fallback widget'), findsOneWidget);
   });
 
+  testWidgets('builds json fallback when root widget type is unknown', (
+    tester,
+  ) async {
+    final registry = _registry();
+
+    await _pumpJson(
+      tester,
+      registry: registry,
+      json: {
+        'type': 'unknown_widget',
+        'args': {},
+        'fallback': {
+          'type': 'text',
+          'args': {'text': 'Fallback for unknown type'},
+        },
+      },
+    );
+
+    expect(find.text('Fallback for unknown type'), findsOneWidget);
+  });
+
+  testWidgets('builds json fallback when root widget type is missing', (
+    tester,
+  ) async {
+    final registry = _registry();
+
+    await _pumpJson(
+      tester,
+      registry: registry,
+      json: {
+        'args': {},
+        'fallback': {
+          'type': 'text',
+          'args': {'text': 'Fallback for missing type'},
+        },
+      },
+    );
+
+    expect(find.text('Fallback for missing type'), findsOneWidget);
+  });
+
+  testWidgets('does not parse fallback until the main widget fails', (
+    tester,
+  ) async {
+    final registry = _registry();
+
+    await _pumpJson(
+      tester,
+      registry: registry,
+      json: {
+        'type': 'text',
+        'args': {'text': 'Main widget'},
+        'fallback': {'type': 'unknown_widget', 'args': {}},
+      },
+    );
+
+    expect(find.text('Main widget'), findsOneWidget);
+  });
+
+  testWidgets('builds json fallback when widget args fail to parse', (
+    tester,
+  ) async {
+    final registry = _registry();
+
+    await _pumpJson(
+      tester,
+      registry: registry,
+      json: {
+        'type': 'text',
+        'args': 'invalid args',
+        'fallback': {
+          'type': 'text',
+          'args': {'text': 'Fallback for invalid args'},
+        },
+      },
+    );
+
+    expect(find.text('Fallback for invalid args'), findsOneWidget);
+  });
+
   testWidgets('uses onBuildWidgetFailed when no json fallback exists', (
     tester,
   ) async {
@@ -62,6 +142,25 @@ void main() {
       find.text('Registry fallback after fallback failed'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('builds final error widget when json fallback cannot parse', (
+    tester,
+  ) async {
+    final registry = _registry();
+
+    await _pumpJson(
+      tester,
+      registry: registry,
+      json: {
+        'type': 'failing',
+        'args': {},
+        'fallback': {'type': 'unknown_widget', 'args': {}},
+      },
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(ErrorWidget), findsOneWidget);
   });
 }
 
