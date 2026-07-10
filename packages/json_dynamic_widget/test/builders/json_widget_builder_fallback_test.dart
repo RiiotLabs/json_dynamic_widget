@@ -21,6 +21,47 @@ void main() {
     expect(find.text('Fallback widget'), findsOneWidget);
   });
 
+  testWidgets('builds json fallback when root widget type is unknown', (
+    tester,
+  ) async {
+    final registry = _registry();
+
+    await _pumpJson(
+      tester,
+      registry: registry,
+      json: {
+        'type': 'unknown_widget',
+        'args': {},
+        'fallback': {
+          'type': 'text',
+          'args': {'text': 'Fallback for unknown type'},
+        },
+      },
+    );
+
+    expect(find.text('Fallback for unknown type'), findsOneWidget);
+  });
+
+  testWidgets('builds json fallback when root widget type is missing', (
+    tester,
+  ) async {
+    final registry = _registry();
+
+    await _pumpJson(
+      tester,
+      registry: registry,
+      json: {
+        'args': {},
+        'fallback': {
+          'type': 'text',
+          'args': {'text': 'Fallback for missing type'},
+        },
+      },
+    );
+
+    expect(find.text('Fallback for missing type'), findsOneWidget);
+  });
+
   testWidgets('uses onBuildWidgetFailed when no json fallback exists', (
     tester,
   ) async {
