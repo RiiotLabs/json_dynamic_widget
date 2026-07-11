@@ -118,6 +118,8 @@ abstract class JsonWidgetBuilder {
     required Object? error,
     required StackTrace? stackTrace,
   }) {
+    var failureError = error;
+    var failureStackTrace = stackTrace;
     final fallback = data.jsonWidgetFallback;
 
     if (fallback != null) {
@@ -128,8 +130,8 @@ abstract class JsonWidgetBuilder {
           registry: data.jsonWidgetRegistry,
         );
       } catch (fallbackError, fallbackStackTrace) {
-        error = fallbackError;
-        stackTrace = fallbackStackTrace;
+        failureError = fallbackError;
+        failureStackTrace = fallbackStackTrace;
       }
     }
 
@@ -139,19 +141,19 @@ abstract class JsonWidgetBuilder {
         return onBuildWidgetFailed(
           data: data,
           context: context,
-          error: error,
-          stackTrace: stackTrace,
+          error: failureError,
+          stackTrace: failureStackTrace,
         );
       } catch (fallbackError, fallbackStackTrace) {
-        error = fallbackError;
-        stackTrace = fallbackStackTrace;
+        failureError = fallbackError;
+        failureStackTrace = fallbackStackTrace;
       }
     }
 
     return _buildFailureWidget(
       data: data,
-      error: error,
-      stackTrace: stackTrace,
+      error: failureError,
+      stackTrace: failureStackTrace,
     );
   }
 

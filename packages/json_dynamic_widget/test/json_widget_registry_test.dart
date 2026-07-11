@@ -40,9 +40,24 @@ void main() {
     expect(data.jsonWidgetFallback!.jsonWidgetType, JsonTextBuilder.kType);
   });
 
+  test('toJson ignores fallback that cannot be serialized', () {
+    final data = JsonWidgetData.fromDynamic({
+      'type': 'text',
+      'args': {'text': 'Main'},
+      'fallback': {'type': 'unknown_widget', 'args': {}},
+    });
+
+    final json = data.toJson();
+
+    expect(json['type'], JsonTextBuilder.kType);
+    expect(json['fallback'], isNull);
+  });
+
   test('json widget data schema supports fallback', () {
     final schema = JsonWidgetDataSchema.schema;
-    final objectSchema = (schema['oneOf'] as List)[1] as Map;
+    final objectSchema = (schema['oneOf'] as List).cast<Map>().firstWhere(
+      (schema) => schema['type'] == 'object',
+    );
     final properties = objectSchema['properties'] as Map;
 
     expect(properties['fallback'], isNotNull);

@@ -353,8 +353,16 @@ $errorValue
       'args': jsonWidgetArgs is JsonClass
           ? jsonWidgetArgs.toJson()
           : jsonWidgetArgs,
-      'fallback': jsonWidgetFallback?.toJson(),
+      'fallback': _safeFallbackToJson(),
     });
+  }
+
+  Map<String, dynamic>? _safeFallbackToJson() {
+    try {
+      return jsonWidgetFallback?.toJson();
+    } catch (_) {
+      return null;
+    }
   }
 }
 
