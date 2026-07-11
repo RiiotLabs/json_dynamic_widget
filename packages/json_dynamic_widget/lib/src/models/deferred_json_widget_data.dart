@@ -79,19 +79,32 @@ class DeferredJsonWidgetData implements JsonWidgetData {
     JsonWidgetRegistry? jsonWidgetRegistry,
     String? jsonWidgetType,
     JsonWidgetData? jsonWidgetFallback,
-  }) => JsonWidgetData(
-    hasProvidedId: hasProvidedId,
-    jsonWidgetArgs: jsonWidgetArgs ?? this.jsonWidgetArgs,
-    jsonWidgetBuilder:
-        jsonWidgetBuilder as JsonWidgetBuilder Function()? ??
-        this.jsonWidgetBuilder,
-    jsonWidgetListenVariables:
-        jsonWidgetListenVariables ?? this.jsonWidgetListenVariables,
-    jsonWidgetId: jsonWidgetId ?? this.jsonWidgetId,
-    jsonWidgetRegistry: jsonWidgetRegistry ?? this.jsonWidgetRegistry,
-    jsonWidgetType: jsonWidgetType ?? this.jsonWidgetType,
-    jsonWidgetFallback: jsonWidgetFallback ?? this.jsonWidgetFallback,
-  );
+  }) {
+    final effectiveRegistry = jsonWidgetRegistry ?? _registry;
+
+    if (jsonWidgetArgs == null &&
+        jsonWidgetBuilder == null &&
+        jsonWidgetListenVariables == null &&
+        jsonWidgetId == null &&
+        jsonWidgetType == null &&
+        jsonWidgetFallback == null) {
+      return DeferredJsonWidgetData(
+        key: _key,
+        registry: effectiveRegistry,
+        onResolved: _onResolved,
+      );
+    }
+
+    return data.copyWith(
+      jsonWidgetArgs: jsonWidgetArgs,
+      jsonWidgetBuilder: jsonWidgetBuilder,
+      jsonWidgetListenVariables: jsonWidgetListenVariables,
+      jsonWidgetId: jsonWidgetId,
+      jsonWidgetRegistry: effectiveRegistry,
+      jsonWidgetType: jsonWidgetType,
+      jsonWidgetFallback: jsonWidgetFallback,
+    );
+  }
 
   @override
   JsonWidgetRegistry get jsonWidgetRegistry => _registry;

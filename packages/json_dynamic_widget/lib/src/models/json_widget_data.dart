@@ -324,19 +324,30 @@ $errorValue
     JsonWidgetRegistry? jsonWidgetRegistry,
     String? jsonWidgetType,
     JsonWidgetData? jsonWidgetFallback,
-  }) => JsonWidgetData(
-    hasProvidedId: hasProvidedId,
-    jsonWidgetArgs: jsonWidgetArgs ?? this.jsonWidgetArgs,
-    jsonWidgetBuilder:
-        jsonWidgetBuilder as JsonWidgetBuilder Function()? ??
-        this.jsonWidgetBuilder,
-    jsonWidgetListenVariables:
-        jsonWidgetListenVariables ?? this.jsonWidgetListenVariables,
-    jsonWidgetId: jsonWidgetId ?? this.jsonWidgetId,
-    jsonWidgetRegistry: jsonWidgetRegistry ?? this.jsonWidgetRegistry,
-    jsonWidgetType: jsonWidgetType ?? this.jsonWidgetType,
-    jsonWidgetFallback: jsonWidgetFallback ?? this.jsonWidgetFallback,
-  );
+  }) {
+    final effectiveRegistry = jsonWidgetRegistry ?? this.jsonWidgetRegistry;
+    final effectiveFallback =
+        jsonWidgetFallback ??
+        (jsonWidgetRegistry == null
+            ? this.jsonWidgetFallback
+            : this.jsonWidgetFallback?.copyWith(
+                jsonWidgetRegistry: effectiveRegistry,
+              ));
+
+    return JsonWidgetData(
+      hasProvidedId: hasProvidedId,
+      jsonWidgetArgs: jsonWidgetArgs ?? this.jsonWidgetArgs,
+      jsonWidgetBuilder:
+          jsonWidgetBuilder as JsonWidgetBuilder Function()? ??
+          this.jsonWidgetBuilder,
+      jsonWidgetListenVariables:
+          jsonWidgetListenVariables ?? this.jsonWidgetListenVariables,
+      jsonWidgetId: jsonWidgetId ?? this.jsonWidgetId,
+      jsonWidgetRegistry: effectiveRegistry,
+      jsonWidgetType: jsonWidgetType ?? this.jsonWidgetType,
+      jsonWidgetFallback: effectiveFallback,
+    );
+  }
 
   @override
   Map<String, dynamic> toJson() {

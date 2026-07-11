@@ -96,23 +96,25 @@ abstract class JsonWidgetBuilder {
       },
     );
 
-    var result =
-        builtWidget ??
-        _buildFallbackOrFailureWidget(
-          context: context,
-          data: data,
-          error: exception,
-          stackTrace: stackTrace,
-        );
-
-    if (childBuilder != null) {
-      result = childBuilder(context, result);
+    if (builtWidget == null) {
+      return _buildFallbackOrFailureWidget(
+        childBuilder: childBuilder,
+        context: context,
+        data: data,
+        error: exception,
+        stackTrace: stackTrace,
+      );
     }
 
-    return result;
+    return _wrapWithChildBuilder(
+      childBuilder: childBuilder,
+      context: context,
+      child: builtWidget,
+    );
   }
 
   Widget _buildFallbackOrFailureWidget({
+    required ChildWidgetBuilder? childBuilder,
     required BuildContext context,
     required JsonWidgetData data,
     required Object? error,
@@ -125,7 +127,7 @@ abstract class JsonWidgetBuilder {
     if (fallback != null) {
       try {
         return fallback.build(
-          childBuilder: null,
+          childBuilder: childBuilder,
           context: context,
           registry: data.jsonWidgetRegistry,
         );
@@ -137,8 +139,9 @@ abstract class JsonWidgetBuilder {
 
     final onBuildWidgetFailed = data.jsonWidgetRegistry.onBuildWidgetFailed;
     if (onBuildWidgetFailed != null) {
+      Widget? failedWidget;
       try {
-        return onBuildWidgetFailed(
+        failedWidget = onBuildWidgetFailed(
           data: data,
           context: context,
           error: failureError,
@@ -148,13 +151,37 @@ abstract class JsonWidgetBuilder {
         failureError = fallbackError;
         failureStackTrace = fallbackStackTrace;
       }
+
+      if (failedWidget != null) {
+        return _wrapWithChildBuilder(
+          childBuilder: childBuilder,
+          context: context,
+          child: failedWidget,
+        );
+      }
     }
 
-    return _buildFailureWidget(
-      data: data,
-      error: failureError,
-      stackTrace: failureStackTrace,
+    return _wrapWithChildBuilder(
+      childBuilder: childBuilder,
+      context: context,
+      child: _buildFailureWidget(
+        data: data,
+        error: failureError,
+        stackTrace: failureStackTrace,
+      ),
     );
+  }
+
+  Widget _wrapWithChildBuilder({
+    required ChildWidgetBuilder? childBuilder,
+    required BuildContext context,
+    required Widget child,
+  }) {
+    if (childBuilder == null) {
+      return child;
+    }
+
+    return childBuilder(context, child);
   }
 
   Widget _buildFailureWidget({

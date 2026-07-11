@@ -80,6 +80,43 @@ void main() {
     expect(find.text('Main widget'), findsOneWidget);
   });
 
+  testWidgets('passes childBuilder through json fallback subtree', (
+    tester,
+  ) async {
+    final registry = _registry();
+    var wrappedWidgets = 0;
+
+    await _pumpJson(
+      tester,
+      registry: registry,
+      childBuilder: (context, child) {
+        wrappedWidgets += 1;
+        return KeyedSubtree(
+          key: ValueKey('wrapped_$wrappedWidgets'),
+          child: child,
+        );
+      },
+      json: {
+        'type': 'failing',
+        'args': {},
+        'fallback': {
+          'type': 'column',
+          'args': {
+            'children': [
+              {
+                'type': 'text',
+                'args': {'text': 'Fallback child'},
+              },
+            ],
+          },
+        },
+      },
+    );
+
+    expect(find.text('Fallback child'), findsOneWidget);
+    expect(wrappedWidgets, 2);
+  });
+
   testWidgets('builds json fallback when widget args fail to parse', (
     tester,
   ) async {
@@ -162,11 +199,33 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.byType(ErrorWidget), findsOneWidget);
   });
+
+  testWidgets('json fallback uses build-time registry override', (
+    tester,
+  ) async {
+    final parseRegistry = _registry();
+    final buildRegistry = _registry(registerFallbackText: true);
+
+    await _pumpJson(
+      tester,
+      registry: parseRegistry,
+      buildRegistry: buildRegistry,
+      json: {
+        'type': 'failing',
+        'args': {},
+        'fallback': {'type': 'fallback_text', 'args': {}},
+      },
+    );
+
+    expect(find.text('Fallback from override registry'), findsOneWidget);
+  });
 }
 
 Future<void> _pumpJson(
   WidgetTester tester, {
   required JsonWidgetRegistry registry,
+  ChildWidgetBuilder? childBuilder,
+  JsonWidgetRegistry? buildRegistry,
   required Map<String, dynamic> json,
 }) async {
   await tester.pumpWidget(
@@ -175,7 +234,11 @@ Future<void> _pumpJson(
         builder: (context) {
           final data = JsonWidgetData.fromDynamic(json, registry: registry);
 
-          return data.build(context: context);
+          return data.build(
+            childBuilder: childBuilder,
+            context: context,
+            registry: buildRegistry,
+          );
         },
       ),
     ),
@@ -190,6 +253,7 @@ JsonWidgetRegistry _registry({
     StackTrace? stackTrace,
   })?
   onBuildWidgetFailed,
+  bool registerFallbackText = false,
 }) {
   final registry = JsonWidgetRegistry(onBuildWidgetFailed: onBuildWidgetFailed);
 
@@ -199,6 +263,15 @@ JsonWidgetRegistry _registry({
       builder: (args, {registry}) => _FailingBuilder(args: args),
     ),
   );
+
+  if (registerFallbackText) {
+    registry.registerCustomBuilder(
+      'fallback_text',
+      JsonWidgetBuilderContainer(
+        builder: (args, {registry}) => _FallbackTextBuilder(args: args),
+      ),
+    );
+  }
 
   return registry;
 }
@@ -223,5 +296,28 @@ class _FailingBuilder extends JsonWidgetBuilder {
     Key? key,
   }) {
     throw StateError('Failing widget');
+  }
+}
+
+class _FallbackTextBuilder extends JsonWidgetBuilder {
+  const _FallbackTextBuilder({required super.args});
+
+  @override
+  String get type => 'fallback_text';
+
+  @override
+  JsonWidgetBuilderModel createModel({
+    ChildWidgetBuilder? childBuilder,
+    required JsonWidgetData data,
+  }) => throw UnimplementedError();
+
+  @override
+  Widget buildCustom({
+    ChildWidgetBuilder? childBuilder,
+    required BuildContext context,
+    required JsonWidgetData data,
+    Key? key,
+  }) {
+    return const Text('Fallback from override registry');
   }
 }
