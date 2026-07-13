@@ -22,7 +22,7 @@ class _SetValue extends StatefulWidget {
   const _SetValue({
     this.child,
     @JsonBuildArg() this.childBuilder,
-    this.cleanup = true,
+    this.cleanup = false,
     @JsonBuildArg() required this.data,
     @JsonBuildArg() super.key,
     this.values,
@@ -32,7 +32,7 @@ class _SetValue extends StatefulWidget {
   final ChildWidgetBuilder? childBuilder;
 
   /// Set to `true` to remove the values that were set when this is disposed.
-  /// Set to `false` to keep the values this set even after this is disposed.
+  /// Defaults to `false`, keeping the values after this is disposed.
   final bool cleanup;
   final JsonWidgetData data;
   final Map? values;

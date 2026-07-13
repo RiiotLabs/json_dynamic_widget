@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:json_dynamic_widget/json_dynamic_widget.dart';
+import 'package:json_dynamic_widget/src/models/json_widget_id_scope.dart';
 import 'package:logging/logging.dart';
 
 /// Builder that builds dynamic widgets from JSON or other Map-like structures.
@@ -39,31 +40,29 @@ abstract class JsonWidgetBuilder {
   /// Builds the widget.  If there are dynamic keys on the [data] object, and
   /// the widget is not a [PreferredSizeWidget], then the returned widget will
   /// be wrapped by a stateful widget that will rebuild if any of the dynamic
-  /// args change in value.
+  /// args change in value. Generated descendant ids are reused by that wrapper
+  /// for the lifetime of its mounted element.
   @nonVirtual
   Widget build({
     required ChildWidgetBuilder? childBuilder,
     required BuildContext context,
     required JsonWidgetData data,
   }) {
-    late Widget result;
-
     if (preferredSizeWidget == true || data.jsonWidgetListenVariables.isEmpty) {
-      result = _buildWidget(
+      return _buildWidget(
         childBuilder: childBuilder,
         context: context,
         data: data,
       );
-    } else {
-      result = _JsonWidgetStateful(
-        childBuilder: childBuilder,
-        customBuilder: _buildWidget,
-        data: data,
-        key: ValueKey('json_widget_stateful.${data.jsonWidgetId}'),
-      );
     }
 
-    return result;
+    return _JsonWidgetStateful(
+      childBuilder: childBuilder,
+      data: data,
+      key: ValueKey(
+        'json_widget_stateful.${data.jsonWidgetType}.${data.jsonWidgetId}',
+      ),
+    );
   }
 
   /// Custom builder that subclasses must override and implement to return the
@@ -131,28 +130,22 @@ abstract class JsonWidgetBuilder {
 class _JsonWidgetStateful extends StatefulWidget {
   const _JsonWidgetStateful({
     required this.childBuilder,
-    required this.customBuilder,
     required this.data,
     super.key,
   });
 
   final ChildWidgetBuilder? childBuilder;
-  final Widget? Function({
-    required ChildWidgetBuilder childBuilder,
-    required BuildContext context,
-    required JsonWidgetData data,
-  })
-  customBuilder;
   final JsonWidgetData data;
 
   @override
-  State createState() => _JsonWidgetStatefulState();
+  State<_JsonWidgetStateful> createState() => _JsonWidgetStatefulState();
 }
 
 class _JsonWidgetStatefulState extends State<_JsonWidgetStateful> {
   static final Logger _logger = Logger('_JsonWidgetStatefulState');
 
   late JsonWidgetData _data;
+  JsonWidgetIdScope _idScope = JsonWidgetIdScope();
   StreamSubscription? _subscription;
 
   @override
@@ -160,16 +153,34 @@ class _JsonWidgetStatefulState extends State<_JsonWidgetStateful> {
     super.initState();
 
     _data = widget.data;
+    _subscribeToRegistry();
+  }
 
-    _subscription = widget.data.jsonWidgetRegistry.valueStream.listen((event) {
+  void _subscribeToRegistry() {
+    _subscription?.cancel();
+    _subscription = null;
+
+    _subscription = _data.jsonWidgetRegistry.valueStream.listen((event) {
       if (_data.jsonWidgetListenVariables.contains(event.id) == true &&
           event.originator != _data.jsonWidgetId) {
-        // _data = _data.recreate();
         if (mounted == true) {
           setState(() {});
         }
       }
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant _JsonWidgetStateful oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final previousRegistry = _data.jsonWidgetRegistry;
+    _data = widget.data;
+
+    if (identical(previousRegistry, _data.jsonWidgetRegistry) == false) {
+      _idScope = JsonWidgetIdScope();
+      _subscribeToRegistry();
+    }
   }
 
   @override
@@ -182,20 +193,21 @@ class _JsonWidgetStatefulState extends State<_JsonWidgetStateful> {
 
   @override
   Widget build(BuildContext context) {
-    Widget? result;
     try {
-      result = _data.jsonWidgetBuilder().buildCustom(
-        childBuilder: widget.childBuilder,
-        context: context,
-        data: _data,
-        key: ValueKey(_data.jsonWidgetId),
+      return _idScope.run(
+        () => _data.jsonWidgetBuilder()._buildWidget(
+          childBuilder: widget.childBuilder,
+          context: context,
+          data: _data,
+        ),
       );
-
-      if (widget.childBuilder != null) {
-        result = widget.childBuilder!(context, result);
-      }
     } catch (e, stack) {
-      result = SingleChildScrollView(
+      _logger.severe(
+        'Error building widget: [${_data.jsonWidgetType}].',
+        e,
+        stack,
+      );
+      return SingleChildScrollView(
         child: ErrorWidget.withDetails(
           message:
               '''
@@ -204,13 +216,7 @@ $stack
 ''',
         ),
       );
-      _logger.severe(
-        'Error building widget: [${_data.jsonWidgetType}].',
-        e,
-        stack,
-      );
     }
-    return result;
   }
 }
 

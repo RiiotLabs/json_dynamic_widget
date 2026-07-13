@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:interpolation/interpolation.dart';
 import 'package:json_dynamic_widget/json_dynamic_widget.dart';
+import 'package:json_dynamic_widget/src/models/json_widget_id_scope.dart';
 
 /// Creates values used to parameterize child templates.
 /// It generates 'id' field if not exist via [Uuid.v4].
@@ -122,10 +123,9 @@ class JsonDynamicBuilder extends JsonWidgetBuilder {
   JsonWidgetBuilderModel createModel({
     ChildWidgetBuilder? childBuilder,
     required JsonWidgetData data,
-  }) =>
-      throw UnsupportedError(
-        'The dynamic widget is too complex to support auto-encoding',
-      );
+  }) => throw UnsupportedError(
+    'The dynamic widget is too complex to support auto-encoding',
+  );
 
   @override
   Widget buildCustom({
@@ -173,7 +173,9 @@ class _DynamicWidget extends StatefulWidget {
 
 class _DynamicWidgetState extends State<_DynamicWidget> {
   late JsonWidgetData _data;
-  late StreamSubscription<WidgetValueChanged>? _subscription;
+  JsonWidgetIdScope _idScope = JsonWidgetIdScope();
+  Map<(String, int), JsonWidgetIdScope> _itemIdScopes = {};
+  StreamSubscription<WidgetValueChanged>? _subscription;
 
   @override
   void initState() {
@@ -181,7 +183,35 @@ class _DynamicWidgetState extends State<_DynamicWidget> {
 
     _data = widget.data;
     _data.jsonWidgetArgs['children'] = _getChildrenData();
-    _subscription = widget.data.jsonWidgetRegistry.valueStream.listen(
+    _subscribeToRegistry();
+  }
+
+  @override
+  void didUpdateWidget(covariant _DynamicWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final previousData = _data;
+    final previousRegistry = _data.jsonWidgetRegistry;
+    _data = widget.data;
+    final registryChanged =
+        identical(previousRegistry, _data.jsonWidgetRegistry) == false;
+    if (registryChanged) {
+      _idScope = JsonWidgetIdScope();
+      _itemIdScopes = {};
+    }
+    _data.jsonWidgetArgs['children'] = _getChildrenData();
+
+    if (registryChanged) {
+      _subscription?.cancel();
+      _subscription = null;
+      previousRegistry.removeValue(previousData.jsonWidgetId);
+      _subscribeToRegistry();
+    }
+  }
+
+  void _subscribeToRegistry() {
+    _subscription?.cancel();
+    _subscription = _data.jsonWidgetRegistry.valueStream.listen(
       _handleSubscription,
     );
   }
@@ -190,15 +220,15 @@ class _DynamicWidgetState extends State<_DynamicWidget> {
   void dispose() {
     _subscription?.cancel();
     _subscription = null;
-    if (widget.data.jsonWidgetId.isNotEmpty == true) {
-      widget.data.jsonWidgetRegistry.removeValue(widget.data.jsonWidgetId);
+    if (_data.jsonWidgetId.isNotEmpty == true) {
+      _data.jsonWidgetRegistry.removeValue(_data.jsonWidgetId);
     }
     super.dispose();
   }
 
   void _handleSubscription(WidgetValueChanged event) {
-    if (event.id == widget.data.jsonWidgetId &&
-        event.originator != widget.data.jsonWidgetId) {
+    if (event.id == _data.jsonWidgetId &&
+        event.originator != _data.jsonWidgetId) {
       if (mounted == true) {
         setState(() {
           _data.jsonWidgetArgs['children'] = _getChildrenData();
@@ -207,30 +237,56 @@ class _DynamicWidgetState extends State<_DynamicWidget> {
     }
   }
 
-  List<JsonWidgetData> _getChildrenData() {
+  List<JsonWidgetData> _getChildrenData() => _idScope.run(() {
     final List<dynamic> childrenValues =
-        widget.data.jsonWidgetRegistry.getValue(widget.data.jsonWidgetId) ?? [];
+        _data.jsonWidgetRegistry.getValue(_data.jsonWidgetId) ?? [];
     final newChildren = <JsonWidgetData>[];
-    if (childrenValues.isNotEmpty) {
-      childrenValues
-          .map((values) => Interpolation().eval(widget.childTemplate, values))
-          .map(
-            (childJson) => JsonWidgetData.fromDynamic(
+    final itemIdOccurrences = <String, int>{};
+    final newItemIdScopes = <(String, int), JsonWidgetIdScope>{};
+
+    for (final values in childrenValues) {
+      final childJson = Interpolation().eval(widget.childTemplate, values);
+      final itemId = values is Map && values['id'] != null
+          ? values['id'].toString()
+          : null;
+
+      if (itemId == null) {
+        newChildren.add(
+          JsonWidgetData.fromDynamic(
+            json.decode(childJson),
+            registry: _data.jsonWidgetRegistry,
+          ),
+        );
+      } else {
+        final occurrence = itemIdOccurrences.update(
+          itemId,
+          (value) => value + 1,
+          ifAbsent: () => 0,
+        );
+        final itemKey = (itemId, occurrence);
+        final itemScope = _itemIdScopes[itemKey] ?? JsonWidgetIdScope();
+        newItemIdScopes[itemKey] = itemScope;
+        newChildren.add(
+          itemScope.run(
+            () => JsonWidgetData.fromDynamic(
               json.decode(childJson),
-              registry: widget.data.jsonWidgetRegistry,
+              registry: _data.jsonWidgetRegistry,
             ),
-          )
-          .forEach((childWidgetData) => newChildren.add(childWidgetData));
+          ),
+        );
+      }
     }
+
+    _itemIdScopes = newItemIdScopes;
     return newChildren;
-  }
+  });
 
   @override
   Widget build(BuildContext context) {
-    return widget.data.build(
+    return _data.build(
       context: context,
       childBuilder: widget.childBuilder,
-      registry: widget.data.jsonWidgetRegistry,
+      registry: _data.jsonWidgetRegistry,
     );
   }
 }

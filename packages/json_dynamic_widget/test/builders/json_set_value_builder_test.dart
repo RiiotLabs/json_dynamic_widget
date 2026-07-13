@@ -51,13 +51,62 @@ void main() {
 
     unawaited(subscription.cancel());
   });
+
+  test('defaults cleanup to false when omitted', () {
+    final model = JsonSetValueBuilderModel.fromDynamic({
+      'values': {'flag': true},
+    });
+
+    expect(model.cleanup, isFalse);
+    expect(model.toJson(), isNot(contains('cleanup')));
+  });
+
+  test('preserves an explicit cleanup true value', () {
+    final model = JsonSetValueBuilderModel.fromDynamic({
+      'cleanup': true,
+      'values': {'flag': true},
+    });
+
+    expect(model.cleanup, isTrue);
+    expect(model.toJson(), containsPair('cleanup', true));
+  });
+
+  testWidgets('keeps values after unmount when cleanup is omitted', (
+    tester,
+  ) async {
+    final registry = JsonWidgetRegistry();
+
+    await _pumpSetValueWidget(tester, registry, true, includeCleanup: false);
+    expect(registry.getValue('flag'), isTrue);
+
+    await tester.pumpWidget(const SizedBox());
+
+    expect(registry.getValue('flag'), isTrue);
+    registry.dispose();
+  });
+
+  testWidgets('removes values after unmount when cleanup is true', (
+    tester,
+  ) async {
+    final registry = JsonWidgetRegistry();
+
+    await _pumpSetValueWidget(tester, registry, true, cleanup: true);
+    expect(registry.getValue('flag'), isTrue);
+
+    await tester.pumpWidget(const SizedBox());
+
+    expect(registry.getValue('flag'), isNull);
+    registry.dispose();
+  });
 }
 
 Future<void> _pumpSetValueWidget(
   WidgetTester tester,
   JsonWidgetRegistry registry,
-  bool value,
-) async {
+  bool value, {
+  bool cleanup = false,
+  bool includeCleanup = true,
+}) async {
   await tester.pumpWidget(
     Builder(
       builder: (context) {
@@ -65,7 +114,7 @@ Future<void> _pumpSetValueWidget(
           'type': 'set_value',
           'id': 'stable_set_value',
           'args': {
-            'cleanup': false,
+            if (includeCleanup) 'cleanup': cleanup,
             'values': {'flag': value},
           },
         }, registry: registry);
