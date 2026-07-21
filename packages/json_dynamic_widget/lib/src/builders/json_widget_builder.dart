@@ -58,9 +58,10 @@ abstract class JsonWidgetBuilder {
 
     return _JsonWidgetStateful(
       childBuilder: childBuilder,
-      customBuilder: _buildWidget,
       data: data,
-      key: ValueKey('json_widget_stateful.${data.jsonWidgetId}'),
+      key: ValueKey(
+        'json_widget_stateful.${data.jsonWidgetType}.${data.jsonWidgetId}',
+      ),
     );
   }
 
@@ -232,14 +233,6 @@ class _JsonWidgetStateful extends StatefulWidget {
   });
 
   final ChildWidgetBuilder? childBuilder;
-
-  final Widget Function({
-    required ChildWidgetBuilder? childBuilder,
-    required BuildContext context,
-    required JsonWidgetData data,
-  })
-  customBuilder;
-
   final JsonWidgetData data;
 
   @override
@@ -247,6 +240,8 @@ class _JsonWidgetStateful extends StatefulWidget {
 }
 
 class _JsonWidgetStatefulState extends State<_JsonWidgetStateful> {
+  static final Logger _logger = Logger('_JsonWidgetStatefulState');
+
   late JsonWidgetData _data;
   JsonWidgetIdScope _idScope = JsonWidgetIdScope();
   StreamSubscription? _subscription;

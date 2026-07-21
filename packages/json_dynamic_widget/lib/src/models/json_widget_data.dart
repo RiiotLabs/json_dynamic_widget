@@ -14,6 +14,7 @@ class JsonWidgetData extends JsonClass {
     Set<String>? jsonWidgetListenVariables,
     String? jsonWidgetId,
     JsonWidgetRegistry? jsonWidgetRegistry,
+    JsonWidgetData? jsonWidgetFallback,
     required String jsonWidgetType,
   }) : this._(
          hasProvidedId: hasProvidedId ?? jsonWidgetId != null,
@@ -25,6 +26,7 @@ class JsonWidgetData extends JsonClass {
          jsonWidgetBuilder: jsonWidgetBuilder,
          jsonWidgetListenVariables: jsonWidgetListenVariables ?? <String>{},
          jsonWidgetRegistry: jsonWidgetRegistry ?? JsonWidgetRegistry.instance,
+         jsonWidgetFallback: jsonWidgetFallback,
          jsonWidgetType: jsonWidgetType,
        );
 
@@ -346,9 +348,18 @@ $errorValue
     String? jsonWidgetId,
     JsonWidgetRegistry? jsonWidgetRegistry,
     String? jsonWidgetType,
+    JsonWidgetData? jsonWidgetFallback,
   }) {
     final nextId = jsonWidgetId ?? this.jsonWidgetId;
     final nextType = jsonWidgetType ?? this.jsonWidgetType;
+    final effectiveRegistry = jsonWidgetRegistry ?? this.jsonWidgetRegistry;
+    final effectiveFallback =
+        jsonWidgetFallback ??
+        (jsonWidgetRegistry == null
+            ? this.jsonWidgetFallback
+            : this.jsonWidgetFallback?.copyWith(
+                jsonWidgetRegistry: effectiveRegistry,
+              ));
 
     return JsonWidgetData._(
       hasProvidedId: hasProvidedId,
@@ -365,7 +376,8 @@ $errorValue
           this.jsonWidgetBuilder,
       jsonWidgetListenVariables:
           jsonWidgetListenVariables ?? this.jsonWidgetListenVariables,
-      jsonWidgetRegistry: jsonWidgetRegistry ?? this.jsonWidgetRegistry,
+      jsonWidgetRegistry: effectiveRegistry,
+      jsonWidgetFallback: effectiveFallback,
       jsonWidgetType: nextType,
     );
   }
