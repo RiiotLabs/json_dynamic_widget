@@ -1,3 +1,10 @@
+## Unreleased
+
+* Reuse generated widget IDs across listener-driven subtree rebuilds, including
+  lazy and dynamic descendants.
+* Default `set_value.cleanup` to `false`; set it to `true` to remove values when
+  the widget is disposed.
+
 ## [12.0.0] - November 13th, 2025
 
 * Flutter 3.38

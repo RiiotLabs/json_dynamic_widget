@@ -1,4 +1,5 @@
 import 'package:json_dynamic_widget/json_dynamic_widget.dart';
+import 'package:json_dynamic_widget/src/models/json_widget_id_scope.dart';
 
 /// A [JsonWidgetData] subclass that does not parse the JSON until the values
 /// are needed.  This is used internally by the library for when widgets are
@@ -9,10 +10,15 @@ class DeferredJsonWidgetData implements JsonWidgetData {
     required dynamic key,
     required JsonWidgetRegistry registry,
     VoidCallback? onResolved,
-  }) : _key = key,
+  }) : _idAllocation = JsonWidgetIdScope.allocate(
+         providedId: _providedId(key),
+         type: _type(key),
+       ),
+       _key = key,
        _registry = registry,
        _onResolved = onResolved;
 
+  final JsonWidgetIdAllocation _idAllocation;
   final dynamic _key;
   final JsonWidgetRegistry _registry;
   final VoidCallback? _onResolved;
@@ -28,14 +34,10 @@ class DeferredJsonWidgetData implements JsonWidgetData {
   @override
   JsonWidgetBuilder Function() get jsonWidgetBuilder => data.jsonWidgetBuilder;
 
-  JsonWidgetData get data {
-    var data = _data;
-    if (data == null) {
-      data = JsonWidgetData.fromDynamic(_key, registry: jsonWidgetRegistry);
-      _data = data;
-    }
-    return data;
-  }
+  JsonWidgetData get data => (_data ??= JsonWidgetIdScope.runWithAllocation(
+    _idAllocation,
+    () => JsonWidgetData.fromDynamic(_key, registry: jsonWidgetRegistry),
+  ))!;
 
   @override
   Set<String> get jsonWidgetListenVariables => data.jsonWidgetListenVariables;
@@ -117,6 +119,13 @@ class DeferredJsonWidgetData implements JsonWidgetData {
 
   @override
   JsonWidgetData? get jsonWidgetFallback => data.jsonWidgetFallback;
+
+  static String? _providedId(dynamic value) =>
+      value is Map && value['id'] is String ? value['id'] as String : null;
+
+  static String _type(dynamic value) => value is Map && value['type'] is String
+      ? value['type'] as String
+      : 'deferred';
 }
 
 class _CleanupWidget extends StatefulWidget {

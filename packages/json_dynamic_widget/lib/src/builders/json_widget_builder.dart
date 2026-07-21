@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:json_dynamic_widget/json_dynamic_widget.dart';
+import 'package:json_dynamic_widget/src/models/json_widget_id_scope.dart';
+import 'package:logging/logging.dart';
 
 /// Builder that builds dynamic widgets from JSON or other Map-like structures.
 /// Applications can register their own types and builders through the
@@ -38,7 +40,8 @@ abstract class JsonWidgetBuilder {
   /// Builds the widget. If there are dynamic keys on the [data] object, and
   /// the widget is not a [PreferredSizeWidget], then the returned widget will
   /// be wrapped by a stateful widget that will rebuild if any of the dynamic
-  /// args change in value.
+  /// args change in value. Generated descendant ids are reused by that wrapper
+  /// for the lifetime of its mounted element.
   @nonVirtual
   Widget build({
     required ChildWidgetBuilder? childBuilder,
@@ -224,7 +227,6 @@ ${_safeDataToJson(data)}
 class _JsonWidgetStateful extends StatefulWidget {
   const _JsonWidgetStateful({
     required this.childBuilder,
-    required this.customBuilder,
     required this.data,
     super.key,
   });
@@ -241,11 +243,12 @@ class _JsonWidgetStateful extends StatefulWidget {
   final JsonWidgetData data;
 
   @override
-  State createState() => _JsonWidgetStatefulState();
+  State<_JsonWidgetStateful> createState() => _JsonWidgetStatefulState();
 }
 
 class _JsonWidgetStatefulState extends State<_JsonWidgetStateful> {
   late JsonWidgetData _data;
+  JsonWidgetIdScope _idScope = JsonWidgetIdScope();
   StreamSubscription? _subscription;
 
   @override
@@ -253,16 +256,34 @@ class _JsonWidgetStatefulState extends State<_JsonWidgetStateful> {
     super.initState();
 
     _data = widget.data;
+    _subscribeToRegistry();
+  }
 
-    _subscription = widget.data.jsonWidgetRegistry.valueStream.listen((event) {
+  void _subscribeToRegistry() {
+    _subscription?.cancel();
+    _subscription = null;
+
+    _subscription = _data.jsonWidgetRegistry.valueStream.listen((event) {
       if (_data.jsonWidgetListenVariables.contains(event.id) == true &&
           event.originator != _data.jsonWidgetId) {
-        // _data = _data.recreate();
         if (mounted == true) {
           setState(() {});
         }
       }
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant _JsonWidgetStateful oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final previousRegistry = _data.jsonWidgetRegistry;
+    _data = widget.data;
+
+    if (identical(previousRegistry, _data.jsonWidgetRegistry) == false) {
+      _idScope = JsonWidgetIdScope();
+      _subscribeToRegistry();
+    }
   }
 
   @override
@@ -275,11 +296,30 @@ class _JsonWidgetStatefulState extends State<_JsonWidgetStateful> {
 
   @override
   Widget build(BuildContext context) {
-    return widget.customBuilder(
-      childBuilder: widget.childBuilder,
-      context: context,
-      data: _data,
-    );
+    try {
+      return _idScope.run(
+        () => _data.jsonWidgetBuilder()._buildWidget(
+          childBuilder: widget.childBuilder,
+          context: context,
+          data: _data,
+        ),
+      );
+    } catch (e, stack) {
+      _logger.severe(
+        'Error building widget: [${_data.jsonWidgetType}].',
+        e,
+        stack,
+      );
+      return SingleChildScrollView(
+        child: ErrorWidget.withDetails(
+          message:
+              '''
+$e
+$stack
+''',
+        ),
+      );
+    }
   }
 }
 

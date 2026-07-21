@@ -3,26 +3,47 @@ import 'dart:convert';
 import 'package:execution_timer/execution_timer.dart';
 import 'package:flutter/foundation.dart';
 import 'package:json_dynamic_widget/json_dynamic_widget.dart';
+import 'package:json_dynamic_widget/src/models/json_widget_id_scope.dart';
 import 'package:logging/logging.dart';
 
 class JsonWidgetData extends JsonClass {
   JsonWidgetData({
     bool? hasProvidedId,
-    this.jsonWidgetArgs,
-    required this.jsonWidgetBuilder,
+    dynamic jsonWidgetArgs,
+    required JsonWidgetBuilder Function() jsonWidgetBuilder,
     Set<String>? jsonWidgetListenVariables,
     String? jsonWidgetId,
     JsonWidgetRegistry? jsonWidgetRegistry,
+    required String jsonWidgetType,
+  }) : this._(
+         hasProvidedId: hasProvidedId ?? jsonWidgetId != null,
+         idAllocation: JsonWidgetIdScope.allocate(
+           providedId: jsonWidgetId,
+           type: jsonWidgetType,
+         ),
+         jsonWidgetArgs: jsonWidgetArgs,
+         jsonWidgetBuilder: jsonWidgetBuilder,
+         jsonWidgetListenVariables: jsonWidgetListenVariables ?? <String>{},
+         jsonWidgetRegistry: jsonWidgetRegistry ?? JsonWidgetRegistry.instance,
+         jsonWidgetType: jsonWidgetType,
+       );
+
+  JsonWidgetData._({
+    required this.hasProvidedId,
+    required JsonWidgetIdAllocation idAllocation,
+    this.jsonWidgetArgs,
+    required this.jsonWidgetBuilder,
+    required this.jsonWidgetListenVariables,
+    required this.jsonWidgetRegistry,
     this.jsonWidgetFallback,
     required this.jsonWidgetType,
-  }) : hasProvidedId = hasProvidedId ?? jsonWidgetId != null,
-       jsonWidgetListenVariables = jsonWidgetListenVariables ?? <String>{},
-       jsonWidgetId = jsonWidgetId ?? const Uuid().v4(),
-       jsonWidgetRegistry = jsonWidgetRegistry ?? JsonWidgetRegistry.instance;
+  }) : _jsonWidgetIdScope = idAllocation.childScope,
+       jsonWidgetId = idAllocation.id;
 
   static final Logger _logger = Logger('JsonWidgetData');
 
   final bool hasProvidedId;
+  final JsonWidgetIdScope _jsonWidgetIdScope;
   final dynamic jsonWidgetArgs;
   final JsonWidgetBuilder Function() jsonWidgetBuilder;
   final String jsonWidgetType;
@@ -309,10 +330,12 @@ $errorValue
     required BuildContext context,
     JsonWidgetRegistry? registry,
   }) {
-    return jsonWidgetBuilder().build(
-      childBuilder: childBuilder,
-      context: context,
-      data: copyWith(jsonWidgetRegistry: registry),
+    return _jsonWidgetIdScope.run(
+      () => jsonWidgetBuilder().build(
+        childBuilder: childBuilder,
+        context: context,
+        data: copyWith(jsonWidgetRegistry: registry),
+      ),
     );
   }
 
@@ -323,29 +346,27 @@ $errorValue
     String? jsonWidgetId,
     JsonWidgetRegistry? jsonWidgetRegistry,
     String? jsonWidgetType,
-    JsonWidgetData? jsonWidgetFallback,
   }) {
-    final effectiveRegistry = jsonWidgetRegistry ?? this.jsonWidgetRegistry;
-    final effectiveFallback =
-        jsonWidgetFallback ??
-        (jsonWidgetRegistry == null
-            ? this.jsonWidgetFallback
-            : this.jsonWidgetFallback?.copyWith(
-                jsonWidgetRegistry: effectiveRegistry,
-              ));
+    final nextId = jsonWidgetId ?? this.jsonWidgetId;
+    final nextType = jsonWidgetType ?? this.jsonWidgetType;
 
-    return JsonWidgetData(
+    return JsonWidgetData._(
       hasProvidedId: hasProvidedId,
+      idAllocation: JsonWidgetIdAllocation(
+        childScope:
+            nextId == this.jsonWidgetId && nextType == this.jsonWidgetType
+            ? _jsonWidgetIdScope
+            : JsonWidgetIdScope(),
+        id: nextId,
+      ),
       jsonWidgetArgs: jsonWidgetArgs ?? this.jsonWidgetArgs,
       jsonWidgetBuilder:
           jsonWidgetBuilder as JsonWidgetBuilder Function()? ??
           this.jsonWidgetBuilder,
       jsonWidgetListenVariables:
           jsonWidgetListenVariables ?? this.jsonWidgetListenVariables,
-      jsonWidgetId: jsonWidgetId ?? this.jsonWidgetId,
-      jsonWidgetRegistry: effectiveRegistry,
-      jsonWidgetType: jsonWidgetType ?? this.jsonWidgetType,
-      jsonWidgetFallback: effectiveFallback,
+      jsonWidgetRegistry: jsonWidgetRegistry ?? this.jsonWidgetRegistry,
+      jsonWidgetType: nextType,
     );
   }
 
