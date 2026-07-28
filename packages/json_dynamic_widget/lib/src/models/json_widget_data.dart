@@ -14,6 +14,7 @@ class JsonWidgetData extends JsonClass {
     Set<String>? jsonWidgetListenVariables,
     String? jsonWidgetId,
     JsonWidgetRegistry? jsonWidgetRegistry,
+    JsonWidgetData? jsonWidgetFallback,
     required String jsonWidgetType,
   }) : this._(
          hasProvidedId: hasProvidedId ?? jsonWidgetId != null,
@@ -25,6 +26,7 @@ class JsonWidgetData extends JsonClass {
          jsonWidgetBuilder: jsonWidgetBuilder,
          jsonWidgetListenVariables: jsonWidgetListenVariables ?? <String>{},
          jsonWidgetRegistry: jsonWidgetRegistry ?? JsonWidgetRegistry.instance,
+         jsonWidgetFallback: jsonWidgetFallback,
          jsonWidgetType: jsonWidgetType,
        );
 
@@ -35,6 +37,7 @@ class JsonWidgetData extends JsonClass {
     required this.jsonWidgetBuilder,
     required this.jsonWidgetListenVariables,
     required this.jsonWidgetRegistry,
+    this.jsonWidgetFallback,
     required this.jsonWidgetType,
   }) : _jsonWidgetIdScope = idAllocation.childScope,
        jsonWidgetId = idAllocation.id;
@@ -49,6 +52,7 @@ class JsonWidgetData extends JsonClass {
   final JsonWidgetRegistry jsonWidgetRegistry;
   final Set<String> jsonWidgetListenVariables;
   final String jsonWidgetId;
+  final JsonWidgetData? jsonWidgetFallback;
 
   /// Decodes a JSON object into a dynamic widget.  The structure is the same
   /// for all dynamic widgets with the exception of the `args` value.  The
@@ -120,41 +124,97 @@ class JsonWidgetData extends JsonClass {
         final type = map['type'];
         final timer = ExecutionWatch(
           group: 'JsonWidgetData.fromDynamic',
-          name: type,
+          name: type?.toString() ?? 'unknown',
           precision: TimerPrecision.microsecond,
         ).start();
         try {
+          final jsonWidgetFallback = _getFallback(map, registry: registry);
+          final jsonWidgetListenVariables = _getListenVariables(map);
+
           if (type is! String) {
+            final error = HandledJsonWidgetException(
+              'Unknown type encountered: [$type]',
+              data: map,
+            );
+            if (jsonWidgetFallback != null) {
+              result = _fromBuildFailure(
+                error: error,
+                jsonWidgetFallback: jsonWidgetFallback,
+                jsonWidgetListenVariables: jsonWidgetListenVariables,
+                map: map,
+                registry: registry,
+                type: type?.toString() ?? 'unknown',
+              );
+              return result;
+            }
+
             throw HandledJsonWidgetException(
               'Unknown type encountered: [$type]',
               data: map,
             );
           }
-          final builder = registry.getWidgetBuilder(type);
-          final args = map['args'] as Map? ?? const {};
-          final jsonWidgetListenVariables = _getListenVariables(map);
 
-          // The validation needs to happen before we process the dynamic args
-          // orelse there may be non-JSON compatible objects in the map which
-          // will always fail validation.
-          if (kDebugMode) {
-            registry.validateBuilderSchema(
-              type: type,
-              value: args,
-              validate: map.containsKey('args') ? true : false,
-            );
+          late final JsonWidgetBuilderBuilder builder;
+          try {
+            builder = registry.getWidgetBuilder(type);
+          } catch (e, stack) {
+            if (jsonWidgetFallback != null) {
+              result = _fromBuildFailure(
+                error: e,
+                jsonWidgetFallback: jsonWidgetFallback,
+                jsonWidgetListenVariables: jsonWidgetListenVariables,
+                map: map,
+                registry: registry,
+                stackTrace: stack,
+                type: type,
+              );
+              return result;
+            }
+
+            rethrow;
           }
 
-          result = JsonWidgetData(
-            jsonWidgetArgs: map['args'] ?? {},
-            jsonWidgetBuilder: () {
-              return builder(args, registry: registry);
-            },
-            jsonWidgetListenVariables: jsonWidgetListenVariables,
-            jsonWidgetId: map['id'],
-            jsonWidgetRegistry: registry,
-            jsonWidgetType: type,
-          );
+          try {
+            final args = map['args'] as Map? ?? const {};
+
+            // The validation needs to happen before we process the dynamic args
+            // orelse there may be non-JSON compatible objects in the map which
+            // will always fail validation.
+            if (kDebugMode) {
+              registry.validateBuilderSchema(
+                type: type,
+                value: args,
+                validate: map.containsKey('args') ? true : false,
+              );
+            }
+
+            result = JsonWidgetData(
+              jsonWidgetArgs: map['args'] ?? {},
+              jsonWidgetBuilder: () {
+                return builder(args, registry: registry);
+              },
+              jsonWidgetListenVariables: jsonWidgetListenVariables,
+              jsonWidgetId: map['id'],
+              jsonWidgetRegistry: registry,
+              jsonWidgetType: type,
+              jsonWidgetFallback: jsonWidgetFallback,
+            );
+          } catch (e, stack) {
+            if (jsonWidgetFallback != null) {
+              result = _fromBuildFailure(
+                error: e,
+                jsonWidgetFallback: jsonWidgetFallback,
+                jsonWidgetListenVariables: jsonWidgetListenVariables,
+                map: map,
+                registry: registry,
+                stackTrace: stack,
+                type: type,
+              );
+              return result;
+            }
+
+            rethrow;
+          }
         } finally {
           timer.stop();
         }
@@ -189,6 +249,30 @@ $errorValue
     return result;
   }
 
+  static JsonWidgetData _fromBuildFailure({
+    required Object error,
+    required JsonWidgetData jsonWidgetFallback,
+    required Set<String> jsonWidgetListenVariables,
+    required dynamic map,
+    required JsonWidgetRegistry registry,
+    required String type,
+    StackTrace? stackTrace,
+  }) => JsonWidgetData(
+    jsonWidgetArgs: map['args'] ?? {},
+    jsonWidgetBuilder: () {
+      return _JsonWidgetDataFailureBuilder(
+        args: map['args'] ?? {},
+        error: error,
+        stackTrace: stackTrace,
+      );
+    },
+    jsonWidgetFallback: jsonWidgetFallback,
+    jsonWidgetId: map['id'],
+    jsonWidgetListenVariables: jsonWidgetListenVariables,
+    jsonWidgetRegistry: registry,
+    jsonWidgetType: type,
+  );
+
   /// Returns a parsed list from a dynamic [Iterable].  If the passed in [list]
   /// is `null` then this will return `null`.
   static List<JsonWidgetData>? maybeFromDynamicList(
@@ -211,6 +295,19 @@ $errorValue
     }
 
     return result;
+  }
+
+  static JsonWidgetData? _getFallback(
+    dynamic map, {
+    required JsonWidgetRegistry registry,
+  }) {
+    final fallback = map?['fallback'];
+
+    if (fallback == null) {
+      return null;
+    }
+
+    return DeferredJsonWidgetData(key: fallback, registry: registry);
   }
 
   /// Get listen variables directly from [map].
@@ -251,9 +348,18 @@ $errorValue
     String? jsonWidgetId,
     JsonWidgetRegistry? jsonWidgetRegistry,
     String? jsonWidgetType,
+    JsonWidgetData? jsonWidgetFallback,
   }) {
     final nextId = jsonWidgetId ?? this.jsonWidgetId;
     final nextType = jsonWidgetType ?? this.jsonWidgetType;
+    final effectiveRegistry = jsonWidgetRegistry ?? this.jsonWidgetRegistry;
+    final effectiveFallback =
+        jsonWidgetFallback ??
+        (jsonWidgetRegistry == null
+            ? this.jsonWidgetFallback
+            : this.jsonWidgetFallback?.copyWith(
+                jsonWidgetRegistry: effectiveRegistry,
+              ));
 
     return JsonWidgetData._(
       hasProvidedId: hasProvidedId,
@@ -270,7 +376,8 @@ $errorValue
           this.jsonWidgetBuilder,
       jsonWidgetListenVariables:
           jsonWidgetListenVariables ?? this.jsonWidgetListenVariables,
-      jsonWidgetRegistry: jsonWidgetRegistry ?? this.jsonWidgetRegistry,
+      jsonWidgetRegistry: effectiveRegistry,
+      jsonWidgetFallback: effectiveFallback,
       jsonWidgetType: nextType,
     );
   }
@@ -290,6 +397,47 @@ $errorValue
       'args': jsonWidgetArgs is JsonClass
           ? jsonWidgetArgs.toJson()
           : jsonWidgetArgs,
+      'fallback': _safeFallbackToJson(),
     });
+  }
+
+  Map<String, dynamic>? _safeFallbackToJson() {
+    try {
+      return jsonWidgetFallback?.toJson();
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+class _JsonWidgetDataFailureBuilder extends JsonWidgetBuilder {
+  const _JsonWidgetDataFailureBuilder({
+    required super.args,
+    required this.error,
+    required this.stackTrace,
+  });
+
+  final Object error;
+  final StackTrace? stackTrace;
+
+  @override
+  String get type => 'json_widget_data_failure';
+
+  @override
+  JsonWidgetBuilderModel createModel({
+    ChildWidgetBuilder? childBuilder,
+    required JsonWidgetData data,
+  }) {
+    throw UnsupportedError('Failure builder does not create a model.');
+  }
+
+  @override
+  Widget buildCustom({
+    ChildWidgetBuilder? childBuilder,
+    required BuildContext context,
+    required JsonWidgetData data,
+    Key? key,
+  }) {
+    Error.throwWithStackTrace(error, stackTrace ?? StackTrace.current);
   }
 }

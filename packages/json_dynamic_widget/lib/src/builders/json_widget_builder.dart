@@ -37,7 +37,7 @@ abstract class JsonWidgetBuilder {
     required JsonWidgetData data,
   });
 
-  /// Builds the widget.  If there are dynamic keys on the [data] object, and
+  /// Builds the widget. If there are dynamic keys on the [data] object, and
   /// the widget is not a [PreferredSizeWidget], then the returned widget will
   /// be wrapped by a stateful widget that will rebuild if any of the dynamic
   /// args change in value. Generated descendant ids are reused by that wrapper
@@ -82,9 +82,10 @@ abstract class JsonWidgetBuilder {
   }) {
     final key = ValueKey(data.jsonWidgetId);
 
-    dynamic exception;
+    Object? exception;
     StackTrace? stackTrace;
-    var widget = runZonedGuarded(
+
+    final builtWidget = runZonedGuarded<Widget?>(
       () {
         return buildCustom(
           childBuilder: childBuilder,
@@ -93,37 +94,134 @@ abstract class JsonWidgetBuilder {
           key: key,
         );
       },
-      (e, stack) {
-        exception = e;
+      (error, stack) {
+        exception = error;
         stackTrace = stack;
       },
     );
 
-    if (widget == null) {
-      final onBuildWidgetFailed = data.jsonWidgetRegistry.onBuildWidgetFailed;
-      if (onBuildWidgetFailed != null) {
-        widget = onBuildWidgetFailed(
+    if (builtWidget == null) {
+      return _buildFallbackOrFailureWidget(
+        childBuilder: childBuilder,
+        context: context,
+        data: data,
+        error: exception,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return _wrapWithChildBuilder(
+      childBuilder: childBuilder,
+      context: context,
+      child: builtWidget,
+    );
+  }
+
+  Widget _buildFallbackOrFailureWidget({
+    required ChildWidgetBuilder? childBuilder,
+    required BuildContext context,
+    required JsonWidgetData data,
+    required Object? error,
+    required StackTrace? stackTrace,
+  }) {
+    var failureError = error;
+    var failureStackTrace = stackTrace;
+    final fallback = data.jsonWidgetFallback;
+
+    if (fallback != null) {
+      try {
+        return fallback.build(
+          childBuilder: childBuilder,
+          context: context,
+          registry: data.jsonWidgetRegistry,
+        );
+      } catch (fallbackError, fallbackStackTrace) {
+        failureError = fallbackError;
+        failureStackTrace = fallbackStackTrace;
+      }
+    }
+
+    final onBuildWidgetFailed = data.jsonWidgetRegistry.onBuildWidgetFailed;
+    if (onBuildWidgetFailed != null) {
+      Widget? failedWidget;
+      try {
+        failedWidget = onBuildWidgetFailed(
           data: data,
           context: context,
-          error: exception,
-          stackTrace: stackTrace,
+          error: failureError,
+          stackTrace: failureStackTrace,
         );
-      } else if (exception is HandledJsonWidgetException) {
-        throw exception;
-      } else {
-        throw HandledJsonWidgetException(
-          exception,
-          data: data.toJson(),
-          stackTrace: stackTrace,
+      } catch (fallbackError, fallbackStackTrace) {
+        failureError = fallbackError;
+        failureStackTrace = fallbackStackTrace;
+      }
+
+      if (failedWidget != null) {
+        return _wrapWithChildBuilder(
+          childBuilder: childBuilder,
+          context: context,
+          child: failedWidget,
         );
       }
     }
 
-    if (childBuilder != null) {
-      widget = childBuilder(context, widget);
+    return _wrapWithChildBuilder(
+      childBuilder: childBuilder,
+      context: context,
+      child: _buildFailureWidget(
+        data: data,
+        error: failureError,
+        stackTrace: failureStackTrace,
+      ),
+    );
+  }
+
+  Widget _wrapWithChildBuilder({
+    required ChildWidgetBuilder? childBuilder,
+    required BuildContext context,
+    required Widget child,
+  }) {
+    if (childBuilder == null) {
+      return child;
     }
 
-    return widget;
+    return childBuilder(context, child);
+  }
+
+  Widget _buildFailureWidget({
+    required JsonWidgetData data,
+    required Object? error,
+    required StackTrace? stackTrace,
+  }) {
+    if (!kDebugMode) {
+      return const SizedBox.shrink();
+    }
+
+    return SingleChildScrollView(
+      child: ErrorWidget.withDetails(
+        message:
+            '''
+Error building JSON widget: ${data.jsonWidgetType}
+
+Error:
+$error
+
+StackTrace:
+$stackTrace
+
+Data:
+${_safeDataToJson(data)}
+''',
+      ),
+    );
+  }
+
+  String _safeDataToJson(JsonWidgetData data) {
+    try {
+      return data.toJson().toString();
+    } catch (e) {
+      return 'Unable to serialize widget data: $e';
+    }
   }
 }
 

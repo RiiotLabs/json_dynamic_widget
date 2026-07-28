@@ -24,6 +24,7 @@ class DeferredJsonWidgetData implements JsonWidgetData {
   final VoidCallback? _onResolved;
 
   JsonWidgetData? _data;
+
   @override
   bool get hasProvidedId => data.hasProvidedId;
 
@@ -79,14 +80,33 @@ class DeferredJsonWidgetData implements JsonWidgetData {
     String? jsonWidgetId,
     JsonWidgetRegistry? jsonWidgetRegistry,
     String? jsonWidgetType,
-  }) => data.copyWith(
-    jsonWidgetArgs: jsonWidgetArgs,
-    jsonWidgetBuilder: jsonWidgetBuilder,
-    jsonWidgetListenVariables: jsonWidgetListenVariables,
-    jsonWidgetId: jsonWidgetId,
-    jsonWidgetRegistry: jsonWidgetRegistry,
-    jsonWidgetType: jsonWidgetType,
-  );
+    JsonWidgetData? jsonWidgetFallback,
+  }) {
+    final effectiveRegistry = jsonWidgetRegistry ?? _registry;
+
+    if (jsonWidgetArgs == null &&
+        jsonWidgetBuilder == null &&
+        jsonWidgetListenVariables == null &&
+        jsonWidgetId == null &&
+        jsonWidgetType == null &&
+        jsonWidgetFallback == null) {
+      return DeferredJsonWidgetData(
+        key: _key,
+        registry: effectiveRegistry,
+        onResolved: _onResolved,
+      );
+    }
+
+    return data.copyWith(
+      jsonWidgetArgs: jsonWidgetArgs,
+      jsonWidgetBuilder: jsonWidgetBuilder,
+      jsonWidgetListenVariables: jsonWidgetListenVariables,
+      jsonWidgetId: jsonWidgetId,
+      jsonWidgetRegistry: effectiveRegistry,
+      jsonWidgetType: jsonWidgetType,
+      jsonWidgetFallback: jsonWidgetFallback,
+    );
+  }
 
   @override
   JsonWidgetRegistry get jsonWidgetRegistry => _registry;
@@ -96,6 +116,9 @@ class DeferredJsonWidgetData implements JsonWidgetData {
 
   @override
   String get jsonWidgetType => data.jsonWidgetType;
+
+  @override
+  JsonWidgetData? get jsonWidgetFallback => data.jsonWidgetFallback;
 
   static String? _providedId(dynamic value) =>
       value is Map && value['id'] is String ? value['id'] as String : null;
