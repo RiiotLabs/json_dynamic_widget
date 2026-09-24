@@ -219,6 +219,46 @@ void main() {
 
     expect(find.text('Fallback from override registry'), findsOneWidget);
   });
+
+  testWidgets('builds json fallback when listened widget builder fails', (
+    tester,
+  ) async {
+    final registry = _registry();
+    var builderCalls = 0;
+    late final JsonWidgetData data;
+
+    data = JsonWidgetData(
+      jsonWidgetArgs: const {},
+      jsonWidgetBuilder: () {
+        builderCalls += 1;
+        if (builderCalls > 1) {
+          throw StateError('Listened widget builder failed');
+        }
+
+        return const _FailingBuilder(args: {});
+      },
+      jsonWidgetFallback: JsonWidgetData.fromDynamic({
+        'type': 'text',
+        'args': {'text': 'Listener fallback widget'},
+      }, registry: registry),
+      jsonWidgetListenVariables: {'refresh'},
+      jsonWidgetRegistry: registry,
+      jsonWidgetType: 'failing',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            return data.build(context: context);
+          },
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Listener fallback widget'), findsOneWidget);
+  });
 }
 
 Future<void> _pumpJson(
