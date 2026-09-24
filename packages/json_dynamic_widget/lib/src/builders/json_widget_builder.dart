@@ -305,14 +305,16 @@ class _JsonWidgetStatefulState extends State<_JsonWidgetStateful> {
         e,
         stack,
       );
-      return SingleChildScrollView(
-        child: ErrorWidget.withDetails(
-          message:
-              '''
-$e
-$stack
-''',
-        ),
+      return _idScope.run(
+        () => JsonWidgetBuilder.kDefaultChild
+            .jsonWidgetBuilder()
+            ._buildFallbackOrFailureWidget(
+              childBuilder: widget.childBuilder,
+              context: context,
+              data: _data,
+              error: e,
+              stackTrace: stack,
+            ),
       );
     }
   }
